@@ -32,7 +32,7 @@ See [.agents/docs/icons.md](.agents/docs/icons.md)
 
 ## Commands
 
-- `Pi: Open` (`Ctrl+Alt+P` / `Cmd+Alt+P`) — Opens/focuses the pi terminal
+- `Pi: Open` (`Ctrl+Alt+3`) — Opens/focuses the pi terminal
 - `Pi: Open with File` — Opens pi terminal and sends current file path (with selection range if any); also in editor title bar menu
 - `Pi: Send Selection` — Sends editor selection text to the pi terminal
 - `@pi` chat participant — Sends messages to the pi terminal via VS Code Chat

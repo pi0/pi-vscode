@@ -1,7 +1,7 @@
 import { accessSync, constants } from "node:fs";
+import { join } from "node:path";
 import * as vscode from "vscode";
 
-let terminal: vscode.Terminal | null = null;
 let extensionUri: vscode.Uri;
 
 export function activate(context: vscode.ExtensionContext) {
@@ -23,31 +23,25 @@ export function activate(context: vscode.ExtensionContext) {
     participant,
     statusBarItem,
     vscode.commands.registerCommand("pi-vscode.open", () => {
-      createNewTerminal();
-      terminal!.show();
+      const t = createNewTerminal();
+      t.show();
     }),
     vscode.commands.registerCommand("pi-vscode.openWithFile", () => {
       const editor = vscode.window.activeTextEditor;
-      const isNew = !terminal;
-      ensureTerminal();
-      terminal!.show();
+      const t = createNewTerminal();
+      t.show();
       if (editor) {
         const filePath = vscode.workspace.asRelativePath(editor.document.uri);
         const sel = editor.selection;
         const range = sel.isEmpty
-          ? `:${sel.active.line + 1}`
-          : `:${sel.start.line + 1}-${sel.end.line + 1}`;
-        const prompt = `in @${filePath}${range}`;
+          ? `#L${sel.active.line + 1}`
+          : `#L${sel.start.line + 1}-${sel.end.line + 1}`;
+        const prompt = `In @${filePath}${range}`;
         const sendPrompt = () => {
-          terminal?.sendText("\x15", false);
-          terminal?.sendText(prompt, false);
+          t.sendText("\x15", false);
+          t.sendText(prompt, false);
         };
-        if (isNew) {
-          // Wait for terminal process to be ready before sending text
-          terminal!.processId.then(() => sendPrompt());
-        } else {
-          sendPrompt();
-        }
+        t.processId.then(() => sendPrompt());
       }
     }),
     vscode.commands.registerCommand("pi-vscode.sendSelection", () => {
@@ -55,23 +49,29 @@ export function activate(context: vscode.ExtensionContext) {
       if (!editor) return;
       const selection = editor.document.getText(editor.selection);
       if (selection) {
-        ensureTerminal();
-        terminal!.sendText(selection);
-        terminal!.show();
+        const t = createNewTerminal();
+        t.sendText(selection);
+        t.show();
       }
     }),
-    vscode.window.onDidCloseTerminal((t) => {
-      if (t === terminal) {
-        terminal = null;
-      }
+    vscode.window.registerTerminalProfileProvider("pi-vscode.terminal-profile", {
+      provideTerminalProfile() {
+        const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+        return new vscode.TerminalProfile({
+          name: "Pi",
+          shellPath: findPiBinary(),
+          cwd,
+          iconPath: {
+            light: vscode.Uri.joinPath(extensionUri, "assets", "logo-light.svg"),
+            dark: vscode.Uri.joinPath(extensionUri, "assets", "logo.svg"),
+          },
+        });
+      },
     }),
   );
 }
 
-export function deactivate() {
-  terminal?.dispose();
-  terminal = null;
-}
+export function deactivate() {}
 
 const chatHandler: vscode.ChatRequestHandler = async (request, _context, stream, _token) => {
   const message = request.prompt.trim();
@@ -80,9 +80,9 @@ const chatHandler: vscode.ChatRequestHandler = async (request, _context, stream,
     return;
   }
 
-  ensureTerminal();
-  terminal!.sendText(message);
-  terminal!.show();
+  const t = createNewTerminal();
+  t.sendText(message);
+  t.show();
 
   stream.markdown(
     `Sent to Pi terminal:\n\n\`\`\`\n${message}\n\`\`\`\n\nCheck the **Pi** terminal for the response.`,
@@ -95,12 +95,25 @@ function findPiBinary(): string {
   if (custom) return custom;
 
   const home = process.env.HOME || process.env.USERPROFILE || "";
-  const candidates = [`${home}/.bun/bin/pi`, `${home}/.local/bin/pi`, `${home}/.npm-global/bin/pi`];
+  const name = process.platform === "win32" ? "pi.exe" : "pi";
 
+  // Check well-known paths first
+  const candidates = [`${home}/.bun/bin/pi`, `${home}/.local/bin/pi`, `${home}/.npm-global/bin/pi`];
   for (const c of candidates) {
     try {
       accessSync(c, constants.X_OK);
       return c;
+    } catch {}
+  }
+
+  // Search OS PATH
+  const pathDirs = (process.env.PATH || "").split(process.platform === "win32" ? ";" : ":");
+  for (const dir of pathDirs) {
+    if (!dir) continue;
+    const full = join(dir, name);
+    try {
+      accessSync(full, constants.X_OK);
+      return full;
     } catch {}
   }
 
@@ -110,7 +123,7 @@ function findPiBinary(): string {
 function createNewTerminal(): vscode.Terminal {
   const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
 
-  terminal = vscode.window.createTerminal({
+  const terminal = vscode.window.createTerminal({
     name: "Pi",
     shellPath: findPiBinary(),
     cwd,
@@ -118,13 +131,10 @@ function createNewTerminal(): vscode.Terminal {
       light: vscode.Uri.joinPath(extensionUri, "assets", "logo-light.svg"),
       dark: vscode.Uri.joinPath(extensionUri, "assets", "logo.svg"),
     },
-    location: { viewColumn: vscode.ViewColumn.Beside },
+    location: {
+      viewColumn: vscode.ViewColumn.Beside,
+    },
   });
 
   return terminal;
-}
-
-function ensureTerminal(): void {
-  if (terminal) return;
-  createNewTerminal();
 }

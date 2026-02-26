@@ -85,6 +85,15 @@
         }
       ]
     },
+    "terminal": {
+      "profiles": [
+        {
+          "id": "pi-vscode.terminal-profile",
+          "title": "Pi",
+          "icon": "pi-logo"
+        }
+      ]
+    },
     "configuration": {
       "title": "Pi",
       "properties": {
@@ -98,8 +107,7 @@
     "keybindings": [
       {
         "command": "pi-vscode.open",
-        "key": "ctrl+alt+p",
-        "mac": "cmd+alt+p"
+        "key": "ctrl+alt+3"
       }
     ]
   },
