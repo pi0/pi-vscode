@@ -16,7 +16,6 @@ Minimal VS Code extension for [pi coding agent](https://pi.dev/).
 
 <img width="945" height="725" alt="image" src="https://github.com/user-attachments/assets/91dbaca4-6d27-490a-8395-94a9c4d07625" />
 
-
 ## Requirements
 
 - `pi` CLI installed (`npm i -g @mariozechner/pi-coding-agent`)
