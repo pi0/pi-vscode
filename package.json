@@ -94,6 +94,24 @@
         }
       ]
     },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "pi",
+          "title": "Pi",
+          "icon": "assets/logo.svg"
+        }
+      ]
+    },
+    "views": {
+      "pi": [
+        {
+          "type": "webview",
+          "id": "pi-vscode.packages",
+          "name": "Packages"
+        }
+      ]
+    },
     "configuration": {
       "title": "Pi",
       "properties": {

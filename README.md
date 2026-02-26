@@ -11,6 +11,7 @@ Minimal VS Code extension for [pi coding agent](https://pi.dev/).
 - **Open with file context** — Send current file path and line range (or cursor position) to pi, available from the editor title bar
 - **Send selection** — Send selected text directly to the pi terminal
 - **`@pi` chat participant** — Use `@pi` in VS Code Chat to forward messages to the pi terminal
+- **Package manager** — Browse, search, install, and uninstall pi packages from the sidebar with live output streaming and cancel support; automatically detects package capabilities (extensions, skills, prompts, themes)
 - **Auto-detection** — Finds the pi binary automatically from common paths (`~/.bun/bin`, `~/.local/bin`, `~/.npm-global/bin`)
 
 ## Requirements
@@ -32,11 +33,17 @@ ovsx get pi0.pi-vscode
 
 ## Commands
 
-| Command              | Keybinding                 | Description                       |
-| -------------------- | -------------------------- | --------------------------------- |
+| Command              | Keybinding   | Description                       |
+| -------------------- | ------------ | --------------------------------- |
 | `Pi: Open`           | `Ctrl+Alt+3` | Open or focus the pi terminal     |
-| `Pi: Open with File` | Editor title bar           | Open pi with current file context |
-| `Pi: Send Selection` | —                          | Send selected text to pi terminal |
+| `Pi: Open with File` | Editor title bar | Open pi with current file context |
+| `Pi: Send Selection` | —            | Send selected text to pi terminal |
+
+## Sidebar
+
+The **Pi** activity bar icon opens a sidebar with:
+
+- **Packages view** — Search the npm registry for `pi-package` packages, see capability labels (extensions, skills, prompts, themes), install/uninstall with live streamed output, and cancel in-progress operations
 
 ## Configuration
 

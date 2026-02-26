@@ -1,6 +1,7 @@
 import { accessSync, constants } from "node:fs";
 import { join } from "node:path";
 import * as vscode from "vscode";
+import { createPackagesViewProvider } from "./packages.ts";
 
 let extensionUri: vscode.Uri;
 
@@ -54,6 +55,10 @@ export function activate(context: vscode.ExtensionContext) {
         t.show();
       }
     }),
+    vscode.window.registerWebviewViewProvider(
+      "pi-vscode.packages",
+      createPackagesViewProvider(findPiBinary),
+    ),
     vscode.window.registerTerminalProfileProvider("pi-vscode.terminal-profile", {
       provideTerminalProfile() {
         const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
