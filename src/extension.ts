@@ -136,8 +136,18 @@ function findPiBinary(): string {
   const home = process.env.HOME || process.env.USERPROFILE || "";
   const name = process.platform === "win32" ? "pi.exe" : "pi";
 
-  // Check well-known paths first
-  const candidates = [`${home}/.bun/bin/pi`, `${home}/.local/bin/pi`, `${home}/.npm-global/bin/pi`];
+  // Check workspace-local node_modules/.bin first (respects monorepos / multi-root)
+  const workspaceCandidates = (vscode.workspace.workspaceFolders ?? []).map((f) =>
+    join(f.uri.fsPath, "node_modules", ".bin", name),
+  );
+
+  // Then well-known global paths
+  const candidates = [
+    ...workspaceCandidates,
+    `${home}/.bun/bin/pi`,
+    `${home}/.local/bin/pi`,
+    `${home}/.npm-global/bin/pi`,
+  ];
   for (const c of candidates) {
     try {
       accessSync(c, constants.X_OK);
