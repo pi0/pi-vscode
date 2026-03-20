@@ -16,7 +16,7 @@
 - `src/terminal.ts` — Terminal creation, terminal placement, open-with-file context helpers
 - `src/chat.ts` — RPC-backed `@pi` chat handler with terminal fallback
 - `src/bridge/server.ts` — HTTP server setup, auth, request parsing, VS Code event subscriptions
-- `src/bridge/handlers.ts` — RPC method handlers for editor state, diagnostics, symbols, references, code actions, and edits
+- `src/bridge/handlers.ts` — RPC method handlers for editor state, diagnostics, symbols, definitions/declarations/implementations, hovers, references, workspace symbol search, code actions, formatting, and edits
 - `src/bridge/serialize.ts` — Selection/editor/diagnostic/symbol/code-action serialization helpers
 - `src/bridge/state.ts` — Bridge notification and code-action cache state
 - `src/bridge/types.ts` — Bridge type definitions (selection, editor info, notifications, RPC, state)
@@ -65,7 +65,9 @@ See [.agents/docs/icons.md](.agents/docs/icons.md)
 - Pi binary auto-detected from common paths (`~/.bun/bin/pi`, `~/.local/bin/pi`, etc.) or configurable via `pi-vscode.path` setting
 - Terminal shell is the pi binary itself (not a shell running pi)
 - Every pi launch injects `PI_VSCODE_BRIDGE_URL` and `PI_VSCODE_BRIDGE_TOKEN` plus `--extension bridge/pi-vscode-bridge.js`
-- Bridge tool coverage currently includes: current selection, latest cached selection, diagnostics, open editors, workspace folders, aggregate editor state, opening files in VS Code, dirty/save state, document symbols, references, code actions, executing code actions, applying workspace edits, and buffered IDE notifications
+- Bridge tool coverage currently includes: current selection, latest cached selection, diagnostics, open editors, workspace folders, aggregate editor state, opening files in VS Code, dirty/save state, document symbols, definitions, type definitions, implementations, declarations, hover info, workspace symbol search, references, code actions, executing code actions, applying workspace edits, document/range formatting through VS Code providers, buffered IDE notifications, and showing VS Code info/warning/error notifications
+- Formatting bridge methods (`formatDocument`, `formatRange`) call `vscode.executeFormatDocumentProvider` / `vscode.executeFormatRangeProvider`, convert the returned `TextEdit[]` into a `WorkspaceEdit`, and apply it with `workspace.applyEdit`
+- README bridge docs now group tools into inspection vs action categories, include formatting tools and `vscode_show_notification`, and document important parameter/behavior notes (`selection` vs `start`/`end`, notification polling, cached code action ids)
 
 ## Bridge TODO
 

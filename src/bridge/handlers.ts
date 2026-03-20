@@ -4,7 +4,9 @@ import {
   getEditorInfo,
   serializeCodeAction,
   serializeDiagnostic,
+  serializeHover,
   serializeLocation,
+  serializeLocationLike,
   serializePosition,
   serializeRange,
   serializeSymbol,
@@ -57,6 +59,18 @@ export async function handleRpc(
       return saveDocument(params);
     case "getDocumentSymbols":
       return getDocumentSymbols(params);
+    case "getDefinitions":
+      return getDefinitions(params);
+    case "getTypeDefinitions":
+      return getTypeDefinitions(params);
+    case "getImplementations":
+      return getImplementations(params);
+    case "getDeclarations":
+      return getDeclarations(params);
+    case "getHover":
+      return getHover(params);
+    case "getWorkspaceSymbols":
+      return getWorkspaceSymbols(params);
     case "getReferences":
       return getReferences(params);
     case "getCodeActions":
@@ -65,10 +79,16 @@ export async function handleRpc(
       return executeCodeAction(params, state);
     case "applyWorkspaceEdit":
       return applyWorkspaceEdit(params);
+    case "formatDocument":
+      return formatDocument(params);
+    case "formatRange":
+      return formatRange(params);
     case "getNotifications":
       return getNotifications(params, state);
     case "clearNotifications":
       return clearNotifications(state);
+    case "showNotification":
+      return showNotification(params);
     default:
       throw new Error(`Unknown bridge method: ${method}`);
   }
@@ -168,6 +188,51 @@ async function getDocumentSymbols(params: Record<string, unknown>) {
   };
 }
 
+async function getDefinitions(params: Record<string, unknown>) {
+  return getLocationResults(params, "vscode.executeDefinitionProvider", "definitions");
+}
+
+async function getTypeDefinitions(params: Record<string, unknown>) {
+  return getLocationResults(params, "vscode.executeTypeDefinitionProvider", "typeDefinitions");
+}
+
+async function getImplementations(params: Record<string, unknown>) {
+  return getLocationResults(params, "vscode.executeImplementationProvider", "implementations");
+}
+
+async function getDeclarations(params: Record<string, unknown>) {
+  return getLocationResults(params, "vscode.executeDeclarationProvider", "declarations");
+}
+
+async function getHover(params: Record<string, unknown>) {
+  const filePath = readRequiredString(params.filePath, "filePath");
+  const position = readRequiredPosition(params.position, "position");
+  const uri = getFileUri(filePath);
+  const result = await vscode.commands.executeCommand<vscode.Hover[]>(
+    "vscode.executeHoverProvider",
+    uri,
+    position,
+  );
+  return {
+    filePath: uri.fsPath,
+    fileUri: uri.toString(),
+    position: serializePosition(position),
+    hovers: (result ?? []).map((hover) => serializeHover(hover)),
+  };
+}
+
+async function getWorkspaceSymbols(params: Record<string, unknown>) {
+  const query = readRequiredString(params.query, "query");
+  const result = await vscode.commands.executeCommand<vscode.SymbolInformation[]>(
+    "vscode.executeWorkspaceSymbolProvider",
+    query,
+  );
+  return {
+    query,
+    symbols: (result ?? []).map((symbol) => serializeSymbol(symbol)),
+  };
+}
+
 async function getReferences(params: Record<string, unknown>) {
   const filePath = readRequiredString(params.filePath, "filePath");
   const position = readRequiredPosition(params.position, "position");
@@ -182,6 +247,27 @@ async function getReferences(params: Record<string, unknown>) {
     fileUri: uri.toString(),
     position: serializePosition(position),
     references: (result ?? []).map((location) => serializeLocation(location)),
+  };
+}
+
+async function getLocationResults(
+  params: Record<string, unknown>,
+  command: string,
+  resultKey: string,
+) {
+  const filePath = readRequiredString(params.filePath, "filePath");
+  const position = readRequiredPosition(params.position, "position");
+  const uri = getFileUri(filePath);
+  const result = await vscode.commands.executeCommand<(vscode.Location | vscode.LocationLink)[]>(
+    command,
+    uri,
+    position,
+  );
+  return {
+    filePath: uri.fsPath,
+    fileUri: uri.toString(),
+    position: serializePosition(position),
+    [resultKey]: (result ?? []).map((location) => serializeLocationLike(location)),
   };
 }
 
@@ -259,6 +345,40 @@ async function applyWorkspaceEdit(params: Record<string, unknown>) {
   };
 }
 
+async function formatDocument(params: Record<string, unknown>) {
+  const uri = getFileUri(readRequiredString(params.filePath, "filePath"));
+  const options = (await getFormattingOptions(uri)) ?? {};
+  const result =
+    (await vscode.commands.executeCommand<vscode.TextEdit[]>(
+      "vscode.executeFormatDocumentProvider",
+      uri,
+      options,
+    )) ?? [];
+
+  return applyFormattingEdits(uri, result);
+}
+
+async function formatRange(params: Record<string, unknown>) {
+  const uri = getFileUri(readRequiredString(params.filePath, "filePath"));
+  const selection = readSelection(params.selection);
+  const range = selection
+    ? new vscode.Range(selection.start, selection.end)
+    : new vscode.Range(
+        readRequiredPosition(params.start, "start"),
+        readRequiredPosition(params.end, "end"),
+      );
+  const options = (await getFormattingOptions(uri)) ?? {};
+  const result =
+    (await vscode.commands.executeCommand<vscode.TextEdit[]>(
+      "vscode.executeFormatRangeProvider",
+      uri,
+      range,
+      options,
+    )) ?? [];
+
+  return applyFormattingEdits(uri, result, range);
+}
+
 function getNotifications(params: Record<string, unknown>, state: BridgeState) {
   const since = readOptionalNumber(params.since);
   const limit = Math.max(1, Math.min(readOptionalNumber(params.limit) ?? 20, 100));
@@ -275,4 +395,63 @@ function clearNotifications(state: BridgeState) {
   const cleared = state.notifications.length;
   state.notifications.length = 0;
   return { cleared };
+}
+
+async function showNotification(params: Record<string, unknown>) {
+  const message = readRequiredString(params.message, "message");
+  const type = readOptionalString(params.type) ?? "info";
+  const modal = readOptionalBoolean(params.modal) ?? false;
+
+  switch (type) {
+    case "info":
+      await vscode.window.showInformationMessage(message, { modal });
+      break;
+    case "warning":
+      await vscode.window.showWarningMessage(message, { modal });
+      break;
+    case "error":
+      await vscode.window.showErrorMessage(message, { modal });
+      break;
+    default:
+      throw new Error(`Invalid notification type: ${type}`);
+  }
+
+  return { shown: true, type, modal, message };
+}
+
+async function getFormattingOptions(uri: vscode.Uri) {
+  const document =
+    vscode.workspace.textDocuments.find((entry) => entry.uri.toString() === uri.toString()) ??
+    (await vscode.workspace.openTextDocument(uri));
+
+  return {
+    insertSpaces: getEditorInsertSpaces(document),
+    tabSize: getEditorTabSize(document),
+  };
+}
+
+async function applyFormattingEdits(
+  uri: vscode.Uri,
+  edits: vscode.TextEdit[],
+  range?: vscode.Range,
+) {
+  const workspaceEdit = new vscode.WorkspaceEdit();
+  for (const edit of edits) workspaceEdit.replace(uri, edit.range, edit.newText);
+
+  return {
+    filePath: uri.fsPath,
+    fileUri: uri.toString(),
+    range: range ? serializeRange(range) : undefined,
+    editCount: edits.length,
+    edits: edits.map((edit) => ({ range: serializeRange(edit.range), newText: edit.newText })),
+    applied: edits.length > 0 ? await vscode.workspace.applyEdit(workspaceEdit) : true,
+  };
+}
+
+function getEditorInsertSpaces(document: vscode.TextDocument) {
+  return vscode.workspace.getConfiguration("editor", document).get<boolean>("insertSpaces") ?? true;
+}
+
+function getEditorTabSize(document: vscode.TextDocument) {
+  return vscode.workspace.getConfiguration("editor", document).get<number>("tabSize") ?? 2;
 }

@@ -51,28 +51,54 @@ The **Pi** activity bar icon opens a sidebar with:
 
 ## Bridge tools exposed to pi
 
-Each pi terminal launched by the extension now loads a bundled pi extension that can call back into VS Code.
+Each pi terminal launched by the extension loads a bundled pi extension that can call back into live VS Code APIs.
 
-Available bridge tools:
+### Inspection tools
 
-- `vscode_get_editor_state`
-- `vscode_get_selection`
-- `vscode_get_latest_selection`
-- `vscode_get_diagnostics`
-- `vscode_get_open_editors`
-- `vscode_get_workspace_folders`
-- `vscode_open_file`
-- `vscode_check_document_dirty`
-- `vscode_save_document`
-- `vscode_get_document_symbols`
-- `vscode_get_references`
-- `vscode_get_code_actions`
-- `vscode_execute_code_action`
-- `vscode_apply_workspace_edit`
-- `vscode_get_notifications`
-- `vscode_clear_notifications`
+| Tool                           | What it returns                                                                                                               |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| `vscode_get_editor_state`      | Aggregate snapshot of workspace folders, active editor metadata, current selection, latest cached selection, and open editors |
+| `vscode_get_selection`         | Current active editor selection including selected text, file path, and coordinates                                           |
+| `vscode_get_latest_selection`  | Most recent cached selection seen by the extension, even if focus already moved                                               |
+| `vscode_get_diagnostics`       | VS Code diagnostics for a specific file or the whole workspace                                                                |
+| `vscode_get_open_editors`      | Visible/open file editors with language, dirty state, and active flag                                                         |
+| `vscode_get_workspace_folders` | Workspace folders for the current VS Code window                                                                              |
+| `vscode_get_document_symbols`  | Outline symbols for a file from the active language server                                                                    |
+| `vscode_get_definitions`       | Symbol definition locations at a given file position                                                                          |
+| `vscode_get_type_definitions`  | Symbol type-definition locations at a given file position                                                                     |
+| `vscode_get_implementations`   | Concrete implementation locations for an interface or abstract member                                                         |
+| `vscode_get_declarations`      | Symbol declaration locations at a given file position                                                                         |
+| `vscode_get_hover`             | Hover docs, inferred types, signatures, and markdown/code snippets from the language server                                   |
+| `vscode_get_workspace_symbols` | Global workspace symbol search through VS Code language providers                                                             |
+| `vscode_get_references`        | Symbol references at a given file position                                                                                    |
+| `vscode_get_code_actions`      | Available code actions / quick fixes for a selection or explicit range, plus intersecting diagnostics                         |
+| `vscode_get_notifications`     | Buffered bridge events such as selection, editor, diagnostics, save, and dirty-state changes                                  |
 
-These tools are backed by live VS Code APIs, so pi can inspect current selections, LSP diagnostics, symbols, references, quick-fix availability, dirty state, recent editor events, and can now apply VS Code-managed edits or execute specific quick fixes on demand.
+### Action tools
+
+| Tool                          | What it does                                                                                     |
+| ----------------------------- | ------------------------------------------------------------------------------------------------ |
+| `vscode_open_file`            | Opens a file in VS Code and can reveal/select a range                                            |
+| `vscode_check_document_dirty` | Checks whether a file is open and whether it has unsaved changes                                 |
+| `vscode_save_document`        | Saves a document through VS Code                                                                 |
+| `vscode_execute_code_action`  | Executes a previously returned code action by `actionId`                                         |
+| `vscode_apply_workspace_edit` | Applies explicit range-based text replacements through VS Code so open buffers stay synchronized |
+| `vscode_format_document`      | Runs the active document formatter for a file and applies the resulting edits through VS Code    |
+| `vscode_format_range`         | Runs the active range formatter for a selection/range and applies the resulting edits            |
+| `vscode_clear_notifications`  | Clears the buffered bridge notification queue                                                    |
+| `vscode_show_notification`    | Shows an info, warning, or error notification inside VS Code                                     |
+
+### Notes
+
+- Paths accepted by file-based bridge tools can be absolute or workspace-relative.
+- `vscode_get_code_actions` accepts either `selection` or explicit `start` / `end` positions.
+- `vscode_execute_code_action` only works with an `actionId` returned by the most recent `vscode_get_code_actions` calls while that cached entry still exists.
+- `vscode_apply_workspace_edit` applies one or more `{ filePath, range, newText }` replacements via VS Code rather than editing files behind the editor's back.
+- `vscode_format_range` accepts either `selection` or explicit `start` / `end` positions.
+- `vscode_format_document` / `vscode_format_range` use VS Code formatting providers and apply formatter-generated `TextEdit[]` results with `workspace.applyEdit`, which is safer for open or dirty buffers than shelling out.
+- `vscode_get_notifications` supports `since` and `limit` parameters for incremental polling.
+
+These bridge tools let pi inspect selections, diagnostics, symbols, definitions, declarations, implementations, hover/type info, workspace-wide symbol search, references, quick-fix availability, dirty state, and recent IDE events, while also safely opening files, saving buffers, applying workspace edits, formatting open buffers through VS Code providers, running VS Code code actions, and surfacing notifications back to the user.
 
 ## Configuration
 

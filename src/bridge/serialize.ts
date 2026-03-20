@@ -1,6 +1,8 @@
 import * as vscode from "vscode";
 import type { BridgeEditorInfo, BridgeSelection } from "./types.ts";
 
+type LocationLike = vscode.Location | vscode.LocationLink;
+
 export const IGNORE_SELECTION_SCHEMES = new Set(["comment", "output"]);
 
 export function captureSelection(
@@ -51,6 +53,21 @@ export function serializeLocation(location: vscode.Location) {
     filePath: location.uri.fsPath,
     fileUri: location.uri.toString(),
     range: serializeRange(location.range),
+  };
+}
+
+export function serializeLocationLike(location: LocationLike) {
+  if (location instanceof vscode.Location) return serializeLocation(location);
+  return {
+    filePath: location.targetUri.fsPath,
+    fileUri: location.targetUri.toString(),
+    range: serializeRange(location.targetRange),
+    targetSelectionRange: location.targetSelectionRange
+      ? serializeRange(location.targetSelectionRange)
+      : undefined,
+    originSelectionRange: location.originSelectionRange
+      ? serializeRange(location.originSelectionRange)
+      : undefined,
   };
 }
 
@@ -119,6 +136,29 @@ export function serializeCodeAction(action: vscode.Command | vscode.CodeAction, 
     diagnostics: action.diagnostics?.map((diagnostic) => serializeDiagnostic(diagnostic)),
     command: action.command ? serializeCommand(action.command) : undefined,
     hasEdit: !!action.edit,
+  };
+}
+
+export function serializeHover(hover: vscode.Hover) {
+  return {
+    contents: hover.contents.map((content) => {
+      if (typeof content === "string") return { kind: "markdown", value: content };
+      if (content instanceof vscode.MarkdownString) {
+        return {
+          kind: "markdown",
+          value: content.value,
+          isTrusted: content.isTrusted,
+          supportHtml: content.supportHtml,
+          supportThemeIcons: content.supportThemeIcons,
+        };
+      }
+      return {
+        kind: "codeblock",
+        language: content.language,
+        value: content.value,
+      };
+    }),
+    range: hover.range ? serializeRange(hover.range) : undefined,
   };
 }
 
