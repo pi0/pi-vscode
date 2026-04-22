@@ -4,3 +4,4 @@ node_modules
 .claude
 dist
 *.vsix
+package-lock.json
