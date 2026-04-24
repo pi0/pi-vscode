@@ -15,6 +15,7 @@
 - `src/pi.ts` — Pi binary resolution, install prompt, launch args, bridge env helpers
 - `src/terminal.ts` — Terminal creation, terminal placement, open-with-file context helpers
 - `src/chat.ts` — RPC-backed `@pi` chat handler with terminal fallback
+- `src/sessions.ts` — Per-terminal pi session tracking and restore-on-activation helper (workspaceState-backed)
 - `src/bridge/server.ts` — HTTP server setup, auth, request parsing, VS Code event subscriptions
 - `src/bridge/handlers.ts` — RPC method handlers for editor state/status, diagnostics, symbols, definitions/declarations/implementations, hovers, references, workspace symbol search, code actions, formatting, and edits
 - `src/bridge/serialize.ts` — Selection/status/editor/diagnostic/symbol/code-action serialization helpers
@@ -68,7 +69,8 @@ See [.agents/docs/icons.md](.agents/docs/icons.md)
 - Pi binary auto-detected from common paths (`~/.bun/bin/pi`, `~/.local/bin/pi`, etc.) or configurable via `pi-vscode.path` setting
 - `Pi: Upgrade Pi and Packages` reuses the binary resolver, guesses the package manager from the discovered binary path, launches the corresponding global install command for `@mariozechner/pi-coding-agent@latest`, and chains `pi update` afterward
 - Terminal shell is the pi binary itself (not a shell running pi)
-- Every pi launch injects `PI_VSCODE_BRIDGE_URL` and `PI_VSCODE_BRIDGE_TOKEN` plus `--extension bridge/pi-vscode-bridge.js`
+- Every pi launch injects `PI_VSCODE_BRIDGE_URL`, `PI_VSCODE_BRIDGE_TOKEN`, and a per-terminal `PI_VSCODE_TERMINAL_ID` plus `--extension bridge/pi-vscode-bridge.js`
+- On `session_start`, the pi bridge reports `{terminalId, sessionFile}` via the `reportTerminalSession` RPC; VS Code stores the map in `workspaceState` under `pi-vscode.terminalSessions` and, on next activation, recreates each terminal with `--session <sessionFile>` so prior pi conversations resume across IDE reloads. Terminals closed explicitly (non-`Shutdown` exit reason) are removed from the map; entries whose session file no longer exists on disk are pruned on activation
 - The bundled pi bridge extension refreshes a `ctx.ui.setStatus("pi-vscode", ...)` footer entry every 1.5 seconds so the bottom of pi's TUI reflects the current VS Code editor context
 - Bridge tool coverage currently includes: current selection, latest cached selection, diagnostics, open editors, workspace folders, aggregate editor state, opening files in VS Code, dirty/save state, document symbols, definitions, type definitions, implementations, declarations, hover info, workspace symbol search, references, code actions, executing code actions, applying workspace edits, document/range formatting through VS Code providers, buffered IDE notifications, and showing VS Code info/warning/error notifications
 - Formatting bridge methods (`formatDocument`, `formatRange`) call `vscode.executeFormatDocumentProvider` / `vscode.executeFormatRangeProvider`, convert the returned `TextEdit[]` into a `WorkspaceEdit`, and apply it with `workspace.applyEdit`

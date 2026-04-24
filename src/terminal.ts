@@ -7,16 +7,26 @@ export async function createNewTerminal(options: {
   bridgeConfig?: { url: string; token: string };
   extraArgs?: string[];
   contextLines?: string[];
+  terminalId?: string;
+  sessionFile?: string;
 }): Promise<vscode.Terminal | undefined> {
   const piPath = await ensurePiBinary();
   if (!piPath) return undefined;
 
   const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
   const viewColumn = findPiColumn() ?? findUnusedColumn() ?? vscode.ViewColumn.Beside;
+  const extraArgs = options.sessionFile
+    ? ["--session", options.sessionFile, ...(options.extraArgs ?? [])]
+    : options.extraArgs;
   const shellArgs = createPiShellArgs(options.extensionUri, {
-    extraArgs: options.extraArgs,
+    extraArgs,
     contextLines: options.contextLines,
   });
+
+  const baseEnv = createPiEnvironment(options.bridgeConfig);
+  const env = options.terminalId
+    ? { ...baseEnv, PI_VSCODE_TERMINAL_ID: options.terminalId }
+    : baseEnv;
 
   const terminal = vscode.window.createTerminal({
     name: TERMINAL_TITLE,
@@ -25,7 +35,7 @@ export async function createNewTerminal(options: {
     location: { viewColumn },
     isTransient: true,
     cwd,
-    env: createPiEnvironment(options.bridgeConfig),
+    env,
     iconPath: {
       light: vscode.Uri.joinPath(options.extensionUri, "assets", "logo-light.svg"),
       dark: vscode.Uri.joinPath(options.extensionUri, "assets", "logo.svg"),

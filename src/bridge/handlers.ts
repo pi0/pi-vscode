@@ -93,9 +93,18 @@ export async function handleRpc(
       return clearNotifications(state);
     case "showNotification":
       return showNotification(params);
+    case "reportTerminalSession":
+      return reportTerminalSession(params, state);
     default:
       throw new Error(`Unknown bridge method: ${method}`);
   }
+}
+
+function reportTerminalSession(params: Record<string, unknown>, state: BridgeState) {
+  const terminalId = readRequiredString(params.terminalId, "terminalId");
+  const sessionFile = readRequiredString(params.sessionFile, "sessionFile");
+  state.reportTerminalSession(terminalId, sessionFile);
+  return { received: true };
 }
 
 function getStatus(state: BridgeState) {

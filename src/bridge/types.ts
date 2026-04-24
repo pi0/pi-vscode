@@ -74,4 +74,5 @@ export interface BridgeState {
   codeActions: Map<string, CachedCodeAction>;
   enqueue(type: BridgeNotification["type"], data: unknown): void;
   cacheCodeAction(action: vscode.CodeAction | vscode.Command, filePath: string): string;
+  reportTerminalSession(terminalId: string, sessionFile: string): void;
 }

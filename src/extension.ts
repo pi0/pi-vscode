@@ -1,9 +1,11 @@
+import { randomUUID } from "node:crypto";
 import * as vscode from "vscode";
 import { createBridge } from "./bridge/server.ts";
 import { createChatHandler } from "./chat.ts";
 import { TERMINAL_TITLE } from "./constants.ts";
 import { createPiEnvironment, createPiShellArgs, findPiBinary, upgradePiBinary } from "./pi.ts";
 import { createPackagesViewProvider } from "./packages.ts";
+import { createSessionTracker } from "./sessions.ts";
 import { buildOpenWithFileContext, createNewTerminal } from "./terminal.ts";
 
 let extensionUri: vscode.Uri;
@@ -13,7 +15,10 @@ let bridgeDispose: (() => Promise<void>) | undefined;
 export async function activate(context: vscode.ExtensionContext) {
   extensionUri = context.extensionUri;
 
-  const bridge = await createBridge(context);
+  const sessions = createSessionTracker(context);
+  const bridge = await createBridge(context, (terminalId, sessionFile) => {
+    sessions.update(terminalId, sessionFile);
+  });
   bridgeConfig = { url: bridge.url, token: bridge.token };
   bridgeDispose = () => bridge.dispose();
   context.subscriptions.push({
@@ -24,6 +29,22 @@ export async function activate(context: vscode.ExtensionContext) {
       void dispose?.();
     },
   });
+
+  const openTerminal = async (
+    extraArgs?: string[],
+    contextLines?: string[],
+  ): Promise<vscode.Terminal | undefined> => {
+    const terminalId = randomUUID();
+    const terminal = await createNewTerminal({
+      extensionUri,
+      bridgeConfig,
+      extraArgs,
+      contextLines,
+      terminalId,
+    });
+    if (terminal) sessions.track(terminal, terminalId);
+    return terminal;
+  };
 
   const participant = vscode.chat.createChatParticipant(
     "pi-vscode.chat",
@@ -47,16 +68,13 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     participant,
     statusBarItem,
+    vscode.window.onDidCloseTerminal((terminal) => sessions.onClose(terminal)),
     vscode.commands.registerCommand("pi-vscode.open", async () => {
-      const terminal = await createNewTerminal({ extensionUri, bridgeConfig });
+      const terminal = await openTerminal();
       terminal?.show();
     }),
     vscode.commands.registerCommand("pi-vscode.openWithFile", async () => {
-      const terminal = await createNewTerminal({
-        extensionUri,
-        bridgeConfig,
-        contextLines: buildOpenWithFileContext(),
-      });
+      const terminal = await openTerminal(undefined, buildOpenWithFileContext());
       terminal?.show();
     }),
     vscode.commands.registerCommand("pi-vscode.sendSelection", async () => {
@@ -64,15 +82,11 @@ export async function activate(context: vscode.ExtensionContext) {
       if (!editor) return;
       const selection = editor.document.getText(editor.selection);
       if (!selection) return;
-      const terminal = await createNewTerminal({
-        extensionUri,
-        bridgeConfig,
-        extraArgs: [selection],
-      });
+      const terminal = await openTerminal([selection]);
       terminal?.show();
     }),
     vscode.commands.registerCommand("pi-vscode.openInNewWindow", async () => {
-      const terminal = await createNewTerminal({ extensionUri, bridgeConfig });
+      const terminal = await openTerminal();
       if (!terminal) return;
       terminal.show();
       await vscode.commands.executeCommand("workbench.action.moveEditorToNewWindow");
@@ -84,17 +98,21 @@ export async function activate(context: vscode.ExtensionContext) {
     ),
     vscode.window.registerTerminalProfileProvider("pi-vscode.terminal-profile", {
       provideTerminalProfile() {
+        const terminalId = randomUUID();
+        const baseEnv = createPiEnvironment(bridgeConfig);
         return new vscode.TerminalProfile({
           name: TERMINAL_TITLE,
           shellPath: findPiBinary(),
           shellArgs: createPiShellArgs(extensionUri),
           cwd: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath,
-          env: createPiEnvironment(bridgeConfig),
+          env: { ...baseEnv, PI_VSCODE_TERMINAL_ID: terminalId },
           iconPath: logoIcon,
         });
       },
     }),
   );
+
+  if (bridgeConfig) void sessions.restore(extensionUri, bridgeConfig);
 }
 
 export async function deactivate() {

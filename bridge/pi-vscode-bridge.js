@@ -189,8 +189,19 @@ export default function (pi) {
     }, STATUS_REFRESH_MS);
   };
 
+  const reportTerminalSession = async (ctx) => {
+    const terminalId = process.env.PI_VSCODE_TERMINAL_ID;
+    if (!terminalId) return;
+    const sessionFile = ctx?.sessionManager?.getSessionFile?.();
+    if (!sessionFile) return;
+    try {
+      await callBridge("reportTerminalSession", { terminalId, sessionFile });
+    } catch {}
+  };
+
   pi.on("session_start", async (_event, ctx) => {
     startStatusUpdates(ctx);
+    await reportTerminalSession(ctx);
   });
 
   pi.on("input", async (_event, ctx) => {

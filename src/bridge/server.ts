@@ -9,8 +9,14 @@ import { toErrorMessage } from "./utils.ts";
 
 const MAX_REQUEST_BYTES = 4 * 1024 * 1024;
 
-export async function createBridge(context: vscode.ExtensionContext): Promise<BridgeContext> {
-  const state = createBridgeState(captureSelection(vscode.window.activeTextEditor));
+export async function createBridge(
+  context: vscode.ExtensionContext,
+  onTerminalSession?: (terminalId: string, sessionFile: string) => void,
+): Promise<BridgeContext> {
+  const state = createBridgeState(
+    captureSelection(vscode.window.activeTextEditor),
+    onTerminalSession,
+  );
   const dirtyState = new Map<string, boolean>();
   const token = randomUUID();
 
