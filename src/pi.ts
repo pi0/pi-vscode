@@ -1,8 +1,15 @@
-import { accessSync, constants } from "node:fs";
+import { accessSync, constants, realpathSync } from "node:fs";
 import { join } from "node:path";
 import * as vscode from "vscode";
 import { BRIDGE_BOOTSTRAP_LINES, BRIDGE_EXTENSION_PATH } from "./constants.ts";
 import { resolvePiBinary } from "./_resolve.ts";
+import {
+  createPiGlobalInstallCommand,
+  createPiUpgradeCommand,
+  guessPiPackageManager,
+  PI_PACKAGE_MANAGERS,
+  type PiPackageManager,
+} from "./upgrade.ts";
 
 let piExistsCache: boolean | undefined;
 
@@ -28,22 +35,41 @@ export async function ensurePiBinary(): Promise<string | undefined> {
 
   if (piExistsCache) return piPath;
 
-  const commands: Record<string, string> = {
-    npm: "npm i -g @mariozechner/pi-coding-agent",
-    bun: "bun i -g @mariozechner/pi-coding-agent",
-    pnpm: "pnpm i -g @mariozechner/pi-coding-agent",
-  };
+  const managers = PI_PACKAGE_MANAGERS.filter((manager) => manager !== "yarn");
   const action = await vscode.window.showErrorMessage(
     "Pi binary not found. Install it globally?",
-    ...Object.keys(commands),
+    ...managers,
   );
   if (action) {
     piExistsCache = undefined;
     const terminal = vscode.window.createTerminal({ name: "Install Pi" });
     terminal.show();
-    terminal.sendText(commands[action]!);
+    terminal.sendText(createPiGlobalInstallCommand(action));
   }
   return undefined;
+}
+
+export async function upgradePiBinary(): Promise<void> {
+  const piPath = await ensurePiBinary();
+  if (!piPath) return;
+
+  let manager: PiPackageManager | undefined = guessPiPackageManager(piPath);
+  if (!manager) {
+    try {
+      manager = guessPiPackageManager(realpathSync(piPath));
+    } catch {}
+  }
+  if (!manager) {
+    manager = (await vscode.window.showQuickPick([...PI_PACKAGE_MANAGERS], {
+      placeHolder: `Could not infer the package manager for ${piPath}. Choose one to upgrade Pi globally.`,
+    })) as PiPackageManager | undefined;
+  }
+  if (!manager) return;
+
+  const terminal = vscode.window.createTerminal({ name: "Upgrade Pi" });
+  terminal.show();
+  terminal.sendText(createPiUpgradeCommand(manager, piPath));
+  void vscode.window.showInformationMessage(`Upgrading Pi with ${manager}. Found pi at: ${piPath}`);
 }
 
 export function createPiShellArgs(

@@ -78,6 +78,10 @@
         "title": "Pi: Send Selection"
       },
       {
+        "command": "pi-vscode.upgrade",
+        "title": "Pi: Upgrade Pi and Packages"
+      },
+      {
         "command": "pi-vscode.openInNewWindow",
         "title": "Pi: Open in New Window",
         "icon": {

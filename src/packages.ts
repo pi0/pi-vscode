@@ -43,6 +43,8 @@ export function createPackagesViewProvider(findPiBinary: () => string): vscode.W
           activeProcess?.kill();
         } else if (msg.type === "refresh") {
           refreshInstalled();
+        } else if (msg.type === "upgrade") {
+          void vscode.commands.executeCommand("pi-vscode.upgrade");
         }
       });
     },
@@ -73,6 +75,9 @@ body { height:100%; margin:0; padding:0; font-family: var(--vscode-font-family);
 .search-bar input { flex:1; min-width:0; padding:4px 8px; background:var(--vscode-input-background); color:var(--vscode-input-foreground); border:1px solid var(--vscode-input-border,transparent); border-radius:4px; font-size:12px; outline:none; }
 .search-bar button { padding:4px 10px; cursor:pointer; background:var(--vscode-button-background); color:var(--vscode-button-foreground); border:none; border-radius:4px; font-size:12px; white-space:nowrap; }
 .search-bar button:hover { background:var(--vscode-button-hoverBackground); }
+.action-bar { padding:0 8px 8px; display:flex; gap:4px; flex-shrink:0; }
+.action-bar button { width:100%; padding:4px 10px; cursor:pointer; background:var(--vscode-button-secondaryBackground); color:var(--vscode-button-secondaryForeground); border:none; border-radius:4px; font-size:12px; }
+.action-bar button:hover { background:var(--vscode-button-secondaryHoverBackground); }
 .pkg-list { flex:1; overflow-y:auto; padding:0 8px 8px; }
 .pkg-card { padding:10px; margin-bottom:6px; background:var(--vscode-editor-background); border:1px solid var(--vscode-widget-border,var(--vscode-panel-border,transparent)); border-radius:6px; }
 .pkg-name { font-weight:600; margin-bottom:2px; display:flex; align-items:center; gap:6px; }
@@ -99,6 +104,9 @@ body { height:100%; margin:0; padding:0; font-family: var(--vscode-font-family);
   <input id="search" type="text" placeholder="Search packages..." />
   <button id="search-btn">Search</button>
 </div>
+<div class="action-bar">
+  <button id="upgrade-btn" title="Upgrade the pi CLI, then run pi update for installed packages">Upgrade Pi and Packages</button>
+</div>
 <div id="installed-section" style="display:none;padding:8px;border-bottom:1px solid var(--vscode-widget-border,var(--vscode-panel-border,transparent))">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
     <strong style="font-size:12px">Installed</strong>
@@ -117,6 +125,7 @@ body { height:100%; margin:0; padding:0; font-family: var(--vscode-font-family);
 const vscode = acquireVsCodeApi();
 const searchInput = document.getElementById('search');
 const searchBtn = document.getElementById('search-btn');
+const upgradeBtn = document.getElementById('upgrade-btn');
 const list = document.getElementById('list');
 let allPackages = [];
 let installedSet = new Set();
@@ -204,6 +213,7 @@ function install(pkg) {
 }
 
 searchBtn.addEventListener('click', () => render(searchInput.value.trim()));
+upgradeBtn.addEventListener('click', () => vscode.postMessage({ type: 'upgrade' }));
 searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') render(searchInput.value.trim()); });
 
 window.addEventListener('message', (e) => {

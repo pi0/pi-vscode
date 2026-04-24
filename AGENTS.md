@@ -47,7 +47,8 @@ See [.agents/docs/icons.md](.agents/docs/icons.md)
 ## UI
 
 - **Status bar button** (right-aligned) with `$(pi-logo) Pi` label — opens the pi terminal on click
-- No sidebar or panel webviews — minimal footprint
+- **Packages sidebar view** includes search/install/uninstall package management and an `Upgrade Pi and Packages` button wired to `Pi: Upgrade Pi and Packages`
+- No panel webviews — minimal footprint
 - Activation: `onStartupFinished` so the status bar button appears immediately
 
 ## Commands
@@ -55,6 +56,7 @@ See [.agents/docs/icons.md](.agents/docs/icons.md)
 - `Pi: Open` (`Ctrl+Alt+3`) — Opens/focuses the pi terminal
 - `Pi: Open with File` — Opens pi terminal and sends current file path (with selection range if any); also in editor title bar menu
 - `Pi: Send Selection` — Sends editor selection text to the pi terminal
+- `Pi: Upgrade Pi and Packages` — Finds the resolved pi binary, infers npm/bun/pnpm/yarn from its path (prompting if ambiguous), runs the matching global install/update command in a terminal, then runs `pi update` to update installed pi extensions/packages
 - `@pi` chat participant — Uses pi RPC mode for streamed chat responses while preserving the terminal-based workflow for normal Pi commands
 
 ## Notes
@@ -63,6 +65,7 @@ See [.agents/docs/icons.md](.agents/docs/icons.md)
 - Terminal cleaned up on close, recreated on next command
 - CJS wrapper pattern allows `"type": "module"` while satisfying VS Code's `require()` loading
 - Pi binary auto-detected from common paths (`~/.bun/bin/pi`, `~/.local/bin/pi`, etc.) or configurable via `pi-vscode.path` setting
+- `Pi: Upgrade Pi and Packages` reuses the binary resolver, guesses the package manager from the discovered binary path, launches the corresponding global install command for `@mariozechner/pi-coding-agent@latest`, and chains `pi update` afterward
 - Terminal shell is the pi binary itself (not a shell running pi)
 - Every pi launch injects `PI_VSCODE_BRIDGE_URL` and `PI_VSCODE_BRIDGE_TOKEN` plus `--extension bridge/pi-vscode-bridge.js`
 - Bridge tool coverage currently includes: current selection, latest cached selection, diagnostics, open editors, workspace folders, aggregate editor state, opening files in VS Code, dirty/save state, document symbols, definitions, type definitions, implementations, declarations, hover info, workspace symbol search, references, code actions, executing code actions, applying workspace edits, document/range formatting through VS Code providers, buffered IDE notifications, and showing VS Code info/warning/error notifications

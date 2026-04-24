@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import { createBridge } from "./bridge/server.ts";
 import { createChatHandler } from "./chat.ts";
 import { TERMINAL_TITLE } from "./constants.ts";
-import { createPiEnvironment, createPiShellArgs, findPiBinary } from "./pi.ts";
+import { createPiEnvironment, createPiShellArgs, findPiBinary, upgradePiBinary } from "./pi.ts";
 import { createPackagesViewProvider } from "./packages.ts";
 import { buildOpenWithFileContext, createNewTerminal } from "./terminal.ts";
 
@@ -77,6 +77,7 @@ export async function activate(context: vscode.ExtensionContext) {
       terminal.show();
       await vscode.commands.executeCommand("workbench.action.moveEditorToNewWindow");
     }),
+    vscode.commands.registerCommand("pi-vscode.upgrade", upgradePiBinary),
     vscode.window.registerWebviewViewProvider(
       "pi-vscode.packages",
       createPackagesViewProvider(findPiBinary),

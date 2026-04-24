@@ -37,17 +37,18 @@ ovsx get pi0.pi-vscode
 
 ## Commands
 
-| Command              | Keybinding       | Description                       |
-| -------------------- | ---------------- | --------------------------------- |
-| `Pi: Open`           | `Ctrl+Alt+3`     | Open or focus the pi terminal     |
-| `Pi: Open with File` | Editor title bar | Open pi with current file context |
-| `Pi: Send Selection` | —                | Send selected text to pi terminal |
+| Command                       | Keybinding       | Description                                                                              |
+| ----------------------------- | ---------------- | ---------------------------------------------------------------------------------------- |
+| `Pi: Open`                    | `Ctrl+Alt+3`     | Open or focus the pi terminal                                                            |
+| `Pi: Open with File`          | Editor title bar | Open pi with current file context                                                        |
+| `Pi: Send Selection`          | —                | Send selected text to pi terminal                                                        |
+| `Pi: Upgrade Pi and Packages` | —                | Find the pi binary, infer its package manager, upgrade pi globally, then run `pi update` |
 
 ## Sidebar
 
 The **Pi** activity bar icon opens a sidebar with:
 
-- **Packages view** — Search the npm registry for `pi-package` packages, see capability labels (extensions, skills, prompts, themes), install/uninstall with live streamed output, and cancel in-progress operations
+- **Packages view** — Search the npm registry for `pi-package` packages, see capability labels (extensions, skills, prompts, themes), install/uninstall with live streamed output, cancel in-progress operations, and use **Upgrade Pi and Packages** to upgrade the pi CLI plus installed pi packages from the sidebar
 
 ## Bridge tools exposed to pi
 
@@ -97,6 +98,7 @@ Each pi terminal launched by the extension loads a bundled pi extension that can
 - `vscode_format_range` accepts either `selection` or explicit `start` / `end` positions.
 - `vscode_format_document` / `vscode_format_range` use VS Code formatting providers and apply formatter-generated `TextEdit[]` results with `workspace.applyEdit`, which is safer for open or dirty buffers than shelling out.
 - `vscode_get_notifications` supports `since` and `limit` parameters for incremental polling.
+- Oversized bridge tool results are capped; when a response exceeds the limit, the tool returns a valid JSON wrapper with `truncated: true`, original size metadata, and a `resultJsonPrefix` preview.
 
 These bridge tools let pi inspect selections, diagnostics, symbols, definitions, declarations, implementations, hover/type info, workspace-wide symbol search, references, quick-fix availability, dirty state, and recent IDE events, while also safely opening files, saving buffers, applying workspace edits, formatting open buffers through VS Code providers, running VS Code code actions, and surfacing notifications back to the user.
 
