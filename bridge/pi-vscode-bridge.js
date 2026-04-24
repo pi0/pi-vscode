@@ -4,6 +4,9 @@ export default function (pi) {
 
   if (!bridgeUrl || !bridgeToken) return;
 
+  const MAX_RESULT_BYTES = 50 * 1024;
+  const MAX_RESULT_LINES = 2000;
+
   const callBridge = async (method, params = {}) => {
     const response = await fetch(`${bridgeUrl}/rpc`, {
       method: "POST",
@@ -22,8 +25,34 @@ export default function (pi) {
     return payload?.result;
   };
 
+  const truncateText = (text) => {
+    const lines = text.split("\n");
+    let output =
+      lines.length > MAX_RESULT_LINES ? lines.slice(0, MAX_RESULT_LINES).join("\n") : text;
+    if (Buffer.byteLength(output, "utf8") > MAX_RESULT_BYTES) {
+      const buffer = Buffer.from(output, "utf8");
+      output = buffer.subarray(0, MAX_RESULT_BYTES).toString("utf8");
+    }
+    return output;
+  };
+
+  const boundedJson = (value) => {
+    const text = JSON.stringify(value) ?? "null";
+    const lineCount = text.split("\n").length;
+    const byteCount = Buffer.byteLength(text, "utf8");
+    if (lineCount <= MAX_RESULT_LINES && byteCount <= MAX_RESULT_BYTES) return text;
+    return JSON.stringify({
+      truncated: true,
+      message:
+        "VS Code bridge result exceeded output limits. Re-run the tool with a narrower file/range/query if you need complete structured data.",
+      originalBytes: byteCount,
+      originalLines: lineCount,
+      resultJsonPrefix: truncateText(text),
+    });
+  };
+
   const jsonResult = async (method, params) => ({
-    content: [{ type: "text", text: JSON.stringify(await callBridge(method, params)) }],
+    content: [{ type: "text", text: boundedJson(await callBridge(method, params)) }],
     details: {},
   });
 
@@ -165,6 +194,7 @@ export default function (pi) {
     tool({
       name: "vscode_save_document",
       label: "VS Code Save Document",
+      executionMode: "sequential",
       description: "Save a document through VS Code so editor buffers and disk stay synchronized.",
       parameters: {
         type: "object",
@@ -404,6 +434,7 @@ export default function (pi) {
     tool({
       name: "vscode_execute_code_action",
       label: "VS Code Execute Code Action",
+      executionMode: "sequential",
       description: "Execute a previously listed code action by id.",
       parameters: {
         type: "object",
@@ -421,6 +452,7 @@ export default function (pi) {
     tool({
       name: "vscode_apply_workspace_edit",
       label: "VS Code Apply Workspace Edit",
+      executionMode: "sequential",
       description:
         "Apply explicit range-based text replacements through VS Code so open editor buffers stay in sync.",
       parameters: {
@@ -482,6 +514,7 @@ export default function (pi) {
     tool({
       name: "vscode_format_document",
       label: "VS Code Format Document",
+      executionMode: "sequential",
       description:
         "Run the active VS Code document formatter for a file and apply the resulting edits through VS Code.",
       parameters: {
@@ -497,6 +530,7 @@ export default function (pi) {
     tool({
       name: "vscode_format_range",
       label: "VS Code Format Range",
+      executionMode: "sequential",
       description:
         "Run the active VS Code range formatter for a selection or explicit range and apply the resulting edits through VS Code.",
       parameters: {

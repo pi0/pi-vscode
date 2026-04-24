@@ -117,6 +117,14 @@ async function runPiRpcPrompt(options: {
         } catch {
           return;
         }
+        if (event.type === "extension_ui_request") {
+          const method = typeof event.method === "string" ? event.method : undefined;
+          const id = typeof event.id === "string" ? event.id : undefined;
+          if (id && ["select", "confirm", "input", "editor"].includes(method ?? "")) {
+            sendCommand({ type: "extension_ui_response", id, cancelled: true });
+          }
+          return;
+        }
         if (event.type === "message_update") {
           const assistantMessageEvent = event.assistantMessageEvent as
             | Record<string, unknown>

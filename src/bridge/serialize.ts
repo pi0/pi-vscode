@@ -114,7 +114,7 @@ export function serializeCommand(command: vscode.Command) {
     title: command.title,
     command: command.command,
     tooltip: command.tooltip,
-    arguments: command.arguments,
+    argumentCount: command.arguments?.length ?? 0,
   };
 }
 

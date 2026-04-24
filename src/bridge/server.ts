@@ -7,6 +7,8 @@ import { createBridgeState } from "./state.ts";
 import type { BridgeContext, RpcRequest } from "./types.ts";
 import { toErrorMessage } from "./utils.ts";
 
+const MAX_REQUEST_BYTES = 4 * 1024 * 1024;
+
 export async function createBridge(context: vscode.ExtensionContext): Promise<BridgeContext> {
   const state = createBridgeState(captureSelection(vscode.window.activeTextEditor));
   const dirtyState = new Map<string, boolean>();
@@ -23,6 +25,8 @@ export async function createBridge(context: vscode.ExtensionContext): Promise<Br
       });
     }),
     vscode.window.onDidChangeActiveTextEditor((editor) => {
+      const captured = captureSelection(editor);
+      if (captured) state.latestSelection = captured;
       state.enqueue("active_editor_changed", editor ? getEditorInfo(editor) : undefined);
     }),
     vscode.window.onDidChangeVisibleTextEditors((editors) => {
@@ -44,11 +48,26 @@ export async function createBridge(context: vscode.ExtensionContext): Promise<Br
     }),
     vscode.workspace.onDidSaveTextDocument((document) => {
       if (document.uri.scheme !== "file") return;
+      const key = document.uri.toString();
+      const wasDirty = dirtyState.get(key) ?? false;
+      dirtyState.set(key, false);
+      if (wasDirty) {
+        state.enqueue("document_dirty_changed", {
+          filePath: document.uri.fsPath,
+          fileUri: document.uri.toString(),
+          isDirty: false,
+          languageId: document.languageId,
+        });
+      }
       state.enqueue("document_saved", {
         filePath: document.uri.fsPath,
         fileUri: document.uri.toString(),
         languageId: document.languageId,
       });
+    }),
+    vscode.workspace.onDidCloseTextDocument((document) => {
+      if (document.uri.scheme !== "file") return;
+      dirtyState.delete(document.uri.toString());
     }),
   );
 
@@ -63,7 +82,14 @@ export async function createBridge(context: vscode.ExtensionContext): Promise<Br
         return;
       }
 
-      const body = await readJson(request);
+      let body: unknown;
+      try {
+        body = await readJson(request);
+      } catch (error) {
+        const status = error instanceof PayloadTooLargeError ? 413 : 400;
+        sendJson(response, status, { error: toErrorMessage(error) });
+        return;
+      }
       const rpc = isRpcRequest(body) ? body : undefined;
       if (!rpc?.method) {
         sendJson(response, 400, { error: "Invalid RPC request" });
@@ -110,15 +136,28 @@ function sendJson(response: ServerResponse, statusCode: number, body: unknown) {
   response.end(JSON.stringify(body));
 }
 
+class PayloadTooLargeError extends Error {
+  constructor(limit: number) {
+    super(`Request body exceeds ${limit} bytes`);
+  }
+}
+
 async function readJson(request: IncomingMessage): Promise<unknown> {
   const chunks: Buffer[] = [];
+  let size = 0;
   for await (const chunk of request) {
-    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    size += buffer.length;
+    if (size > MAX_REQUEST_BYTES) {
+      request.destroy();
+      throw new PayloadTooLargeError(MAX_REQUEST_BYTES);
+    }
+    chunks.push(buffer);
   }
   const text = Buffer.concat(chunks).toString("utf8");
   return text ? (JSON.parse(text) as unknown) : {};
 }
 
 function isRpcRequest(value: unknown): value is RpcRequest {
-  return !!value && typeof value === "object";
+  return !!value && typeof value === "object" && !Array.isArray(value);
 }

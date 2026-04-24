@@ -67,6 +67,8 @@ See [.agents/docs/icons.md](.agents/docs/icons.md)
 - Every pi launch injects `PI_VSCODE_BRIDGE_URL` and `PI_VSCODE_BRIDGE_TOKEN` plus `--extension bridge/pi-vscode-bridge.js`
 - Bridge tool coverage currently includes: current selection, latest cached selection, diagnostics, open editors, workspace folders, aggregate editor state, opening files in VS Code, dirty/save state, document symbols, definitions, type definitions, implementations, declarations, hover info, workspace symbol search, references, code actions, executing code actions, applying workspace edits, document/range formatting through VS Code providers, buffered IDE notifications, and showing VS Code info/warning/error notifications
 - Formatting bridge methods (`formatDocument`, `formatRange`) call `vscode.executeFormatDocumentProvider` / `vscode.executeFormatRangeProvider`, convert the returned `TextEdit[]` into a `WorkspaceEdit`, and apply it with `workspace.applyEdit`
+- Bridge notifications now reset dirty state on save, refresh latest selection on active-editor switches, and mark mutating VS Code bridge tools as sequential to reduce parallel edit races
+- The bundled pi bridge truncates oversized JSON tool results into a valid wrapper object, and VS Code chat RPC auto-cancels unsupported extension UI dialog requests so RPC sessions do not deadlock
 - README bridge docs now group tools into inspection vs action categories, include formatting tools and `vscode_show_notification`, and document important parameter/behavior notes (`selection` vs `start`/`end`, notification polling, cached code action ids)
 
 ## Bridge TODO
