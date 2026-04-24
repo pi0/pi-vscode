@@ -9,6 +9,7 @@ Minimal VS Code extension for [pi coding agent](https://pi.dev/).
 - **Terminal-based** — Opens pi as an integrated terminal with full TUI/PTY support (opens beside the editor)
 - **VS Code bridge** — Bundles a pi extension and local bridge so pi can query live editor state
 - **Editor awareness** — pi can inspect the active editor, current/latest selection, open editors, workspace folders, and VS Code diagnostics (LSP / lint / type errors)
+- **Live VS Code footer status** — pi's terminal UI shows the active VS Code file, cursor/selection, language, dirty marker, and diagnostic counts in its bottom status area
 - **Status bar button** — PI button in the status bar for quick access
 - **Open with file context** — Send current file path and line range (or cursor position) to pi, available from the editor title bar
 - **Send selection** — Send selected text directly to the pi terminal
@@ -52,28 +53,28 @@ The **Pi** activity bar icon opens a sidebar with:
 
 ## Bridge tools exposed to pi
 
-Each pi terminal launched by the extension loads a bundled pi extension that can call back into live VS Code APIs.
+Each pi terminal launched by the extension loads a bundled pi extension that can call back into live VS Code APIs. The same extension also updates pi's footer status every few seconds with the active VS Code file, cursor/selection, language id, unsaved-change marker, and diagnostic summary.
 
 ### Inspection tools
 
-| Tool                           | What it returns                                                                                                               |
-| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
-| `vscode_get_editor_state`      | Aggregate snapshot of workspace folders, active editor metadata, current selection, latest cached selection, and open editors |
-| `vscode_get_selection`         | Current active editor selection including selected text, file path, and coordinates                                           |
-| `vscode_get_latest_selection`  | Most recent cached selection seen by the extension, even if focus already moved                                               |
-| `vscode_get_diagnostics`       | VS Code diagnostics for a specific file or the whole workspace                                                                |
-| `vscode_get_open_editors`      | Visible/open file editors with language, dirty state, and active flag                                                         |
-| `vscode_get_workspace_folders` | Workspace folders for the current VS Code window                                                                              |
-| `vscode_get_document_symbols`  | Outline symbols for a file from the active language server                                                                    |
-| `vscode_get_definitions`       | Symbol definition locations at a given file position                                                                          |
-| `vscode_get_type_definitions`  | Symbol type-definition locations at a given file position                                                                     |
-| `vscode_get_implementations`   | Concrete implementation locations for an interface or abstract member                                                         |
-| `vscode_get_declarations`      | Symbol declaration locations at a given file position                                                                         |
-| `vscode_get_hover`             | Hover docs, inferred types, signatures, and markdown/code snippets from the language server                                   |
-| `vscode_get_workspace_symbols` | Global workspace symbol search through VS Code language providers                                                             |
-| `vscode_get_references`        | Symbol references at a given file position                                                                                    |
-| `vscode_get_code_actions`      | Available code actions / quick fixes for a selection or explicit range, plus intersecting diagnostics                         |
-| `vscode_get_notifications`     | Buffered bridge events such as selection, editor, diagnostics, save, and dirty-state changes                                  |
+| Tool                           | What it returns                                                                                                                                                        |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `vscode_get_editor_state`      | Aggregate snapshot of workspace folders, active editor metadata, current selection, latest cached selection, and open editors                                          |
+| `vscode_get_selection`         | Current editor selection including selected text, file path, and coordinates; falls back to the latest cached selection when pi terminal focus hides the active editor |
+| `vscode_get_latest_selection`  | Most recent cached selection seen by the extension, even if focus already moved                                                                                        |
+| `vscode_get_diagnostics`       | VS Code diagnostics for a specific file or the whole workspace                                                                                                         |
+| `vscode_get_open_editors`      | Visible/open file editors with language, dirty state, and active flag                                                                                                  |
+| `vscode_get_workspace_folders` | Workspace folders for the current VS Code window                                                                                                                       |
+| `vscode_get_document_symbols`  | Outline symbols for a file from the active language server                                                                                                             |
+| `vscode_get_definitions`       | Symbol definition locations at a given file position                                                                                                                   |
+| `vscode_get_type_definitions`  | Symbol type-definition locations at a given file position                                                                                                              |
+| `vscode_get_implementations`   | Concrete implementation locations for an interface or abstract member                                                                                                  |
+| `vscode_get_declarations`      | Symbol declaration locations at a given file position                                                                                                                  |
+| `vscode_get_hover`             | Hover docs, inferred types, signatures, and markdown/code snippets from the language server                                                                            |
+| `vscode_get_workspace_symbols` | Global workspace symbol search through VS Code language providers                                                                                                      |
+| `vscode_get_references`        | Symbol references at a given file position                                                                                                                             |
+| `vscode_get_code_actions`      | Available code actions / quick fixes for a selection or explicit range, plus intersecting diagnostics                                                                  |
+| `vscode_get_notifications`     | Buffered bridge events such as selection, editor, diagnostics, save, and dirty-state changes                                                                           |
 
 ### Action tools
 
@@ -97,6 +98,7 @@ Each pi terminal launched by the extension loads a bundled pi extension that can
 - `vscode_apply_workspace_edit` applies one or more `{ filePath, range, newText }` replacements via VS Code rather than editing files behind the editor's back.
 - `vscode_format_range` accepts either `selection` or explicit `start` / `end` positions.
 - `vscode_format_document` / `vscode_format_range` use VS Code formatting providers and apply formatter-generated `TextEdit[]` results with `workspace.applyEdit`, which is safer for open or dirty buffers than shelling out.
+- `vscode_get_selection` falls back to the latest cached VS Code selection when focus is in the pi terminal and VS Code reports no active text editor.
 - `vscode_get_notifications` supports `since` and `limit` parameters for incremental polling.
 - Oversized bridge tool results are capped; when a response exceeds the limit, the tool returns a valid JSON wrapper with `truncated: true`, original size metadata, and a `resultJsonPrefix` preview.
 

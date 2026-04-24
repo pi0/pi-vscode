@@ -1,7 +1,9 @@
 import * as vscode from "vscode";
 import {
   captureSelection,
+  captureSelectionStatus,
   getEditorInfo,
+  getSelectionStatus,
   serializeCodeAction,
   serializeDiagnostic,
   serializeHover,
@@ -11,7 +13,7 @@ import {
   serializeRange,
   serializeSymbol,
 } from "./serialize.ts";
-import type { BridgeState } from "./types.ts";
+import type { BridgeDiagnosticSummary, BridgeEditorInfo, BridgeState } from "./types.ts";
 import {
   createRange,
   getFileUri,
@@ -41,8 +43,10 @@ export async function handleRpc(
         openEditors: getOpenEditors(),
       };
     }
+    case "getStatus":
+      return getStatus(state);
     case "getCurrentSelection":
-      return captureSelection(vscode.window.activeTextEditor);
+      return captureSelection(vscode.window.activeTextEditor) ?? state.latestSelection;
     case "getLatestSelection":
       return state.latestSelection;
     case "getDiagnostics":
@@ -92,6 +96,65 @@ export async function handleRpc(
     default:
       throw new Error(`Unknown bridge method: ${method}`);
   }
+}
+
+function getStatus(state: BridgeState) {
+  const activeEditor = vscode.window.activeTextEditor;
+  const fallbackSelection = state.latestSelection;
+  const fallbackUri = fallbackSelection ? vscode.Uri.parse(fallbackSelection.fileUri) : undefined;
+
+  return {
+    workspaceFolders: getWorkspaceFolders(),
+    activeEditor: activeEditor
+      ? getEditorInfo(activeEditor)
+      : fallbackSelection
+        ? getEditorInfoFromSelection(fallbackSelection)
+        : undefined,
+    selection: activeEditor
+      ? captureSelectionStatus(activeEditor)
+      : fallbackSelection
+        ? getSelectionStatus(fallbackSelection)
+        : undefined,
+    diagnostics: activeEditor
+      ? getDiagnosticSummary(vscode.languages.getDiagnostics(activeEditor.document.uri))
+      : fallbackUri
+        ? getDiagnosticSummary(vscode.languages.getDiagnostics(fallbackUri))
+        : getDiagnosticSummary([]),
+  };
+}
+
+function getEditorInfoFromSelection(selection: BridgeState["latestSelection"]): BridgeEditorInfo {
+  const openDocument = vscode.workspace.textDocuments.find(
+    (document) => document.uri.toString() === selection?.fileUri,
+  );
+  return {
+    filePath: selection?.filePath ?? "",
+    fileUri: selection?.fileUri ?? "",
+    languageId: openDocument?.languageId ?? selection?.languageId ?? "",
+    isDirty: openDocument?.isDirty ?? false,
+    isActive: false,
+  };
+}
+
+function getDiagnosticSummary(diagnostics: readonly vscode.Diagnostic[]): BridgeDiagnosticSummary {
+  const summary = { errors: 0, warnings: 0, infos: 0, hints: 0 };
+  for (const diagnostic of diagnostics) {
+    switch (diagnostic.severity) {
+      case vscode.DiagnosticSeverity.Error:
+        summary.errors++;
+        break;
+      case vscode.DiagnosticSeverity.Warning:
+        summary.warnings++;
+        break;
+      case vscode.DiagnosticSeverity.Information:
+        summary.infos++;
+        break;
+      case vscode.DiagnosticSeverity.Hint:
+        summary.hints++;
+        break;
+    }
+  }
+  return summary;
 }
 
 function getOpenEditors() {

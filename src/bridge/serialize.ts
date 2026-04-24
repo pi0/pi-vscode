@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import type { BridgeEditorInfo, BridgeSelection } from "./types.ts";
+import type { BridgeEditorInfo, BridgeSelection, BridgeSelectionStatus } from "./types.ts";
 
 type LocationLike = vscode.Location | vscode.LocationLink;
 
@@ -19,6 +19,31 @@ export function captureSelection(
     languageId: document.languageId,
     start: serializePosition(selection.start),
     end: serializePosition(selection.end),
+  };
+}
+
+export function captureSelectionStatus(
+  editor: vscode.TextEditor | undefined,
+): BridgeSelectionStatus | undefined {
+  const selection = captureSelection(editor);
+  return selection ? getSelectionStatus(selection) : undefined;
+}
+
+export function getSelectionStatus(selection: BridgeSelection): BridgeSelectionStatus {
+  const isSingleLine = selection.start.line === selection.end.line;
+  return {
+    isEmpty: selection.isEmpty,
+    filePath: selection.filePath,
+    fileUri: selection.fileUri,
+    languageId: selection.languageId,
+    start: selection.start,
+    end: selection.end,
+    selectedLineCount: selection.isEmpty ? 0 : selection.end.line - selection.start.line + 1,
+    ...(isSingleLine
+      ? {
+          selectedCharacterCount: Math.max(0, selection.end.character - selection.start.character),
+        }
+      : {}),
   };
 }
 

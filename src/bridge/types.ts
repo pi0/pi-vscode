@@ -11,6 +11,24 @@ export interface BridgeSelection {
   end: { line: number; character: number };
 }
 
+export interface BridgeSelectionStatus {
+  isEmpty: boolean;
+  filePath: string;
+  fileUri: string;
+  languageId: string;
+  start: { line: number; character: number };
+  end: { line: number; character: number };
+  selectedLineCount: number;
+  selectedCharacterCount?: number;
+}
+
+export interface BridgeDiagnosticSummary {
+  errors: number;
+  warnings: number;
+  infos: number;
+  hints: number;
+}
+
 export interface BridgeEditorInfo {
   filePath: string;
   fileUri: string;
