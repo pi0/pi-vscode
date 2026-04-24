@@ -14,6 +14,68 @@ describe("resolvePiBinary", () => {
     expect(resolvePiBinary({ customPath: "/custom/pi" })).toBe("/custom/pi");
   });
 
+  it("resolves custom path to .cmd on windows when extensionless", () => {
+    const customPath = "C:\\nvm4w\\nodejs\\pi";
+    const cmdPath = "C:\\nvm4w\\nodejs\\pi.cmd";
+    const result = resolvePiBinary({
+      customPath,
+      platform: "win32",
+      access: mockAccess(new Set([cmdPath])),
+    });
+    expect(result).toBe(cmdPath);
+  });
+
+  it("resolves custom path to .exe on windows when .cmd absent", () => {
+    const customPath = "C:\\nvm4w\\nodejs\\pi";
+    const exePath = "C:\\nvm4w\\nodejs\\pi.exe";
+    const result = resolvePiBinary({
+      customPath,
+      platform: "win32",
+      access: mockAccess(new Set([exePath])),
+    });
+    expect(result).toBe(exePath);
+  });
+
+  it("returns custom path as-is on windows when it already has .cmd extension", () => {
+    const customPath = "C:\\nvm4w\\nodejs\\pi.cmd";
+    const result = resolvePiBinary({
+      customPath,
+      platform: "win32",
+      access: mockAccess(new Set()),
+    });
+    expect(result).toBe(customPath);
+  });
+
+  it("returns custom path as-is on windows when no variant found", () => {
+    const customPath = "C:\\nvm4w\\nodejs\\pi";
+    const result = resolvePiBinary({
+      customPath,
+      platform: "win32",
+      access: mockAccess(new Set()),
+    });
+    expect(result).toBe(customPath);
+  });
+
+  it("returns custom path as-is on windows when it has any extension", () => {
+    const customPath = "C:\\nvm4w\\nodejs\\pi.bat";
+    const result = resolvePiBinary({
+      customPath,
+      platform: "win32",
+      access: mockAccess(new Set()),
+    });
+    expect(result).toBe(customPath);
+  });
+
+  it("does not resolve custom path extensions on unix", () => {
+    const customPath = "/usr/local/bin/pi";
+    const result = resolvePiBinary({
+      customPath,
+      platform: "linux",
+      access: mockAccess(new Set()),
+    });
+    expect(result).toBe(customPath);
+  });
+
   it("finds pi in workspace node_modules/.bin on unix", () => {
     const wsDir = "/projects/myapp";
     const piPath = join(wsDir, "node_modules", ".bin", "pi");
@@ -51,11 +113,42 @@ describe("resolvePiBinary", () => {
     expect(result).toBe(bunPath);
   });
 
-  it("skips global unix paths on windows", () => {
-    const home = "C:\\Users\\dev";
+  it("finds pi.cmd in APPDATA\\npm on windows", () => {
+    const appData = "C:\\Users\\dev\\AppData\\Roaming";
+    const piCmd = join(appData, "npm", "pi.cmd");
     const result = resolvePiBinary({
       platform: "win32",
-      home,
+      home: "C:\\Users\\dev",
+      appData,
+      localAppData: "",
+      workspaceDirs: [],
+      access: mockAccess(new Set([piCmd])),
+      pathEnv: "",
+    });
+    expect(result).toBe(piCmd);
+  });
+
+  it("finds pi.cmd in LOCALAPPDATA\\pnpm on windows", () => {
+    const localAppData = "C:\\Users\\dev\\AppData\\Local";
+    const piCmd = join(localAppData, "pnpm", "pi.cmd");
+    const result = resolvePiBinary({
+      platform: "win32",
+      home: "C:\\Users\\dev",
+      appData: "",
+      localAppData,
+      workspaceDirs: [],
+      access: mockAccess(new Set([piCmd])),
+      pathEnv: "",
+    });
+    expect(result).toBe(piCmd);
+  });
+
+  it("falls back to 'pi' on windows when nothing found", () => {
+    const result = resolvePiBinary({
+      platform: "win32",
+      home: "C:\\Users\\dev",
+      appData: "",
+      localAppData: "",
       workspaceDirs: [],
       access: mockAccess(new Set()),
       pathEnv: "",
@@ -64,14 +157,15 @@ describe("resolvePiBinary", () => {
   });
 
   it("finds pi in PATH on unix", () => {
+    const piPath = join("/usr/local/bin", "pi");
     const result = resolvePiBinary({
       platform: "linux",
       home: "/home/user",
       workspaceDirs: [],
-      access: mockAccess(new Set(["/usr/local/bin/pi"])),
+      access: mockAccess(new Set([piPath])),
       pathEnv: "/usr/bin:/usr/local/bin",
     });
-    expect(result).toBe("/usr/local/bin/pi");
+    expect(result).toBe(piPath);
   });
 
   it("finds pi.cmd in PATH on windows", () => {
