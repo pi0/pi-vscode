@@ -1,6 +1,8 @@
 import { accessSync, constants } from "node:fs";
 import { join } from "node:path";
 
+const WIN_EXECUTABLE_EXTENSIONS = [".cmd", ".exe", ".ps1"];
+
 export interface ResolveOptions {
   /** User-configured custom path */
   customPath?: string;
@@ -29,13 +31,12 @@ export function resolvePiBinary(opts: ResolveOptions = {}): string {
 
   const isWin = platform === "win32";
   // On Windows, npm/pnpm create .cmd shims; also check .exe and .ps1
-  const names = isWin ? ["pi.cmd", "pi.exe", "pi.ps1"] : ["pi"];
+  const names = isWin ? WIN_EXECUTABLE_EXTENSIONS.map((ext) => `pi${ext}`) : ["pi"];
   // Windows lacks Unix-style execute permission; just check the file exists
   const accessFlag = isWin ? constants.F_OK : constants.X_OK;
 
-  // If custom path provided, on Windows try .cmd/.exe/.ps1 variants when
-  // the path has no recognised executable extension (extensionless npm shims
-  // are bash scripts that Windows cannot spawn).
+  // Extensionless npm shims on Windows are bash scripts that cannot be spawned;
+  // probe for .cmd/.exe/.ps1 variants when the custom path has no extension.
   if (opts.customPath) {
     if (isWin) {
       const resolved = resolveWindowsExecutable(opts.customPath, access);
@@ -51,14 +52,7 @@ export function resolvePiBinary(opts: ResolveOptions = {}): string {
 
   // Then well-known global paths
   const globalCandidates = isWin
-    ? (() => {
-        const appData = opts.appData ?? process.env.APPDATA ?? "";
-        const localAppData = opts.localAppData ?? process.env.LOCALAPPDATA ?? "";
-        const dirs: string[] = [];
-        if (appData) dirs.push(join(appData, "npm"));
-        if (localAppData) dirs.push(join(localAppData, "pnpm"));
-        return dirs.flatMap((d) => names.map((n) => join(d, n)));
-      })()
+    ? windowsGlobalDirs(opts).flatMap((d) => names.map((n) => join(d, n)))
     : [`${home}/.bun/bin/pi`, `${home}/.local/bin/pi`, `${home}/.npm-global/bin/pi`];
 
   const candidates = [...workspaceCandidates, ...globalCandidates];
@@ -85,25 +79,24 @@ export function resolvePiBinary(opts: ResolveOptions = {}): string {
   return "pi";
 }
 
-/**
- * On Windows, if a path has no recognised executable extension (.cmd/.exe/.ps1),
- * try appending each extension and return the first that exists on disk.
- * Returns null when the path already has a valid extension or no variant is found.
- */
+function windowsGlobalDirs(opts: ResolveOptions): string[] {
+  const appData = opts.appData ?? process.env.APPDATA ?? "";
+  const localAppData = opts.localAppData ?? process.env.LOCALAPPDATA ?? "";
+  const dirs: string[] = [];
+  if (appData) dirs.push(join(appData, "npm"));
+  if (localAppData) dirs.push(join(localAppData, "pnpm"));
+  return dirs;
+}
+
 function resolveWindowsExecutable(
   filePath: string,
   access: (path: string, mode: number) => void,
 ): string | null {
-  const winExts = [".cmd", ".exe", ".ps1"];
-  const dot = filePath.lastIndexOf(".");
+  // If path already has any extension (dot after the last separator), leave it alone.
   const sep = Math.max(filePath.lastIndexOf("\\"), filePath.lastIndexOf("/"));
-  // Only treat as an extension if the dot is after the last path separator
-  if (dot > sep && dot !== -1) {
-    const ext = filePath.slice(dot).toLowerCase();
-    if (winExts.includes(ext)) return null; // already has valid extension
-  }
+  if (filePath.lastIndexOf(".") > sep) return null;
 
-  for (const ext of winExts) {
+  for (const ext of WIN_EXECUTABLE_EXTENSIONS) {
     try {
       access(filePath + ext, constants.F_OK);
       return filePath + ext;

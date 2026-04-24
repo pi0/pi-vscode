@@ -56,6 +56,16 @@ describe("resolvePiBinary", () => {
     expect(result).toBe(customPath);
   });
 
+  it("returns custom path as-is on windows when it has any extension", () => {
+    const customPath = "C:\\nvm4w\\nodejs\\pi.bat";
+    const result = resolvePiBinary({
+      customPath,
+      platform: "win32",
+      access: mockAccess(new Set()),
+    });
+    expect(result).toBe(customPath);
+  });
+
   it("does not resolve custom path extensions on unix", () => {
     const customPath = "/usr/local/bin/pi";
     const result = resolvePiBinary({

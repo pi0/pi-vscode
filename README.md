@@ -105,3 +105,5 @@ These bridge tools let pi inspect selections, diagnostics, symbols, definitions,
 | Setting          | Default | Description                                             |
 | ---------------- | ------- | ------------------------------------------------------- |
 | `pi-vscode.path` | `""`    | Absolute path to the pi binary (auto-detected if empty) |
+
+On Windows, an extensionless `pi-vscode.path` is auto-probed for `.cmd`/`.exe`/`.ps1` variants so extensionless npm shims work out of the box.
