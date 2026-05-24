@@ -13,7 +13,7 @@
 
 - `src/extension.ts` — Thin activation/wiring layer for commands, status bar, terminal profile, chat participant, and bridge lifecycle
 - `src/pi.ts` — Pi binary resolution, install prompt, launch args, bridge env helpers
-- `src/terminal.ts` — Terminal creation, terminal placement, open-with-file context helpers
+- `src/terminal.ts` — Terminal creation (with optional cwd override), terminal placement, open-with-file context helpers (supports explorer resourceUri + multi-root workspace folder resolution)
 - `src/chat.ts` — RPC-backed `@pi` chat handler with terminal fallback
 - `src/sessions.ts` — Per-terminal pi session tracking and restore-on-activation helper (workspaceState-backed)
 - `src/bridge/server.ts` — HTTP server setup, auth, request parsing, VS Code event subscriptions
