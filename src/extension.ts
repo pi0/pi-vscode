@@ -33,6 +33,7 @@ export async function activate(context: vscode.ExtensionContext) {
   const openTerminal = async (
     extraArgs?: string[],
     contextLines?: string[],
+    cwd?: string,
   ): Promise<vscode.Terminal | undefined> => {
     const terminalId = randomUUID();
     const terminal = await createNewTerminal({
@@ -41,6 +42,7 @@ export async function activate(context: vscode.ExtensionContext) {
       extraArgs,
       contextLines,
       terminalId,
+      cwd,
     });
     if (terminal) sessions.track(terminal, terminalId);
     return terminal;
@@ -73,8 +75,9 @@ export async function activate(context: vscode.ExtensionContext) {
       const terminal = await openTerminal();
       terminal?.show();
     }),
-    vscode.commands.registerCommand("pi-vscode.openWithFile", async () => {
-      const terminal = await openTerminal(undefined, buildOpenWithFileContext());
+    vscode.commands.registerCommand("pi-vscode.openWithFile", async (resourceUri?: vscode.Uri) => {
+      const { contextLines, cwd } = buildOpenWithFileContext(resourceUri);
+      const terminal = await openTerminal(undefined, contextLines, cwd);
       terminal?.show();
     }),
     vscode.commands.registerCommand("pi-vscode.sendSelection", async () => {
