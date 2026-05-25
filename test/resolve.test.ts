@@ -2,6 +2,7 @@ import { constants } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { resolvePiBinary } from "../src/_resolve.ts";
+import { getActiveWorkspaceFolderPath, pickWorkspaceFolderPath } from "../src/workspace.ts";
 import {
   createPiGlobalInstallCommand,
   createPiUpgradeCommand,
@@ -17,6 +18,62 @@ function mockAccess(existing: Set<string>) {
 describe("resolvePiBinary", () => {
   it("returns custom path when configured", () => {
     expect(resolvePiBinary({ customPath: "/custom/pi" })).toBe("/custom/pi");
+  });
+
+  it("expands VS Code userHome variable in custom path", () => {
+    expect(
+      resolvePiBinary({
+        customPath: "${userHome}/.bun/bin/aaa.exe",
+        home: "/Users/dev",
+        platform: "linux",
+      }),
+    ).toBe("/Users/dev/.bun/bin/aaa.exe");
+  });
+
+  it("expands VS Code path separator variable in custom path", () => {
+    expect(
+      resolvePiBinary({
+        customPath: "${userHome}${/}.bun${/}bin${/}aaa.exe",
+        home: "C:\\Users\\dev",
+        platform: "win32",
+      }),
+    ).toBe("C:\\Users\\dev\\.bun\\bin\\aaa.exe");
+  });
+
+  it("expands environment variables in custom path", () => {
+    expect(
+      resolvePiBinary({
+        customPath: "${env:BUN_INSTALL}/bin/pi",
+        env: { BUN_INSTALL: "/opt/bun" },
+        platform: "linux",
+      }),
+    ).toBe("/opt/bun/bin/pi");
+  });
+
+  it("expands Windows environment variables case-insensitively in custom path", () => {
+    expect(
+      resolvePiBinary({
+        customPath: "${env:localappdata}\\Programs\\pi\\pi.exe",
+        env: { LOCALAPPDATA: "C:\\Users\\dev\\AppData\\Local" },
+        platform: "win32",
+      }),
+    ).toBe("C:\\Users\\dev\\AppData\\Local\\Programs\\pi\\pi.exe");
+  });
+
+  it("keeps unknown variables unchanged in custom path", () => {
+    expect(resolvePiBinary({ customPath: "${unknown}/pi", platform: "linux" })).toBe(
+      "${unknown}/pi",
+    );
+  });
+
+  it("expands named workspace folders in custom path", () => {
+    expect(
+      resolvePiBinary({
+        customPath: "${workspaceFolder:Client}/node_modules/.bin/pi",
+        workspaceDirs: ["/repo/Server", "/repo/Client"],
+        platform: "linux",
+      }),
+    ).toBe("/repo/Client/node_modules/.bin/pi");
   });
 
   it("resolves custom path to .cmd on windows when extensionless", () => {
@@ -243,6 +300,36 @@ describe("guessPiPackageManager", () => {
 
   it("returns undefined for ambiguous paths", () => {
     expect(guessPiPackageManager("/usr/local/bin/pi")).toBeUndefined();
+  });
+});
+
+describe("active workspace folder", () => {
+  const first = { uri: { fsPath: "/repo/api" } };
+  const second = { uri: { fsPath: "/repo/web" } };
+
+  it("uses the active editor workspace instead of the first folder", () => {
+    expect(pickWorkspaceFolderPath([first, second], second)).toBe("/repo/web");
+  });
+
+  it("falls back to the first folder when there is no active workspace", () => {
+    expect(pickWorkspaceFolderPath([first, second], undefined)).toBe("/repo/api");
+  });
+
+  it("resolves the active editor through the VS Code workspace API", () => {
+    const activeUri = { fsPath: "/repo/web/src/app.ts" };
+    const cwd = getActiveWorkspaceFolderPath({
+      workspace: {
+        workspaceFolders: [first, second],
+        getWorkspaceFolder(uri) {
+          return uri === activeUri ? second : undefined;
+        },
+      },
+      window: {
+        activeTextEditor: { document: { uri: activeUri } },
+      },
+    });
+
+    expect(cwd).toBe("/repo/web");
   });
 });
 

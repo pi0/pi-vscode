@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { TERMINAL_TITLE } from "./constants.ts";
 import { createPiEnvironment, createPiShellArgs, ensurePiBinary } from "./pi.ts";
+import { getActiveWorkspaceFolderPath } from "./workspace.ts";
 
 export async function createNewTerminal(options: {
   extensionUri: vscode.Uri;
@@ -13,7 +14,7 @@ export async function createNewTerminal(options: {
   const piPath = await ensurePiBinary();
   if (!piPath) return undefined;
 
-  const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+  const cwd = getActiveWorkspaceFolderPath(vscode);
   const viewColumn = findPiColumn() ?? findUnusedColumn() ?? vscode.ViewColumn.Beside;
   const extraArgs = options.sessionFile
     ? ["--session", options.sessionFile, ...(options.extraArgs ?? [])]
@@ -48,8 +49,8 @@ export async function createNewTerminal(options: {
 
 export function buildOpenWithFileContext(): string[] {
   const lines: string[] = [];
-  const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-  if (workspaceRoot) lines.push(`The workspace root is: ${workspaceRoot}`);
+  const workspaceRoot = getActiveWorkspaceFolderPath(vscode);
+  if (workspaceRoot) lines.push(`The active workspace root is: ${workspaceRoot}`);
 
   const editor = vscode.window.activeTextEditor;
   if (!editor) return lines;

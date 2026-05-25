@@ -7,6 +7,7 @@ import { createPiEnvironment, createPiShellArgs, findPiBinary, upgradePiBinary }
 import { createPackagesViewProvider } from "./packages.ts";
 import { createSessionTracker } from "./sessions.ts";
 import { buildOpenWithFileContext, createNewTerminal } from "./terminal.ts";
+import { getActiveWorkspaceFolderPath } from "./workspace.ts";
 
 let extensionUri: vscode.Uri;
 let bridgeConfig: { url: string; token: string } | undefined;
@@ -104,7 +105,7 @@ export async function activate(context: vscode.ExtensionContext) {
           name: TERMINAL_TITLE,
           shellPath: findPiBinary(),
           shellArgs: createPiShellArgs(extensionUri),
-          cwd: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath,
+          cwd: getActiveWorkspaceFolderPath(vscode),
           env: { ...baseEnv, PI_VSCODE_TERMINAL_ID: terminalId },
           iconPath: logoIcon,
         });

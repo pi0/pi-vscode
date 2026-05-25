@@ -4,6 +4,7 @@ import * as vscode from "vscode";
 import { toErrorMessage } from "./bridge/utils.ts";
 import { createPiEnvironment, createPiRpcArgs, ensurePiBinary } from "./pi.ts";
 import { createNewTerminal } from "./terminal.ts";
+import { getActiveWorkspaceFolderPath } from "./workspace.ts";
 
 export function createChatHandler(options: {
   extensionUri: vscode.Uri;
@@ -56,7 +57,7 @@ async function runPiRpcPrompt(options: {
   extensionUri: vscode.Uri;
   bridgeConfig?: { url: string; token: string };
 }): Promise<{ hadOutput: boolean }> {
-  const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+  const cwd = getActiveWorkspaceFolderPath(vscode);
   const child = spawn(options.piPath, createPiRpcArgs(options.extensionUri), {
     cwd,
     env: {
