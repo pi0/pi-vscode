@@ -14,6 +14,7 @@
 - `src/extension.ts` — Thin activation/wiring layer for commands, status bar, terminal profile, chat participant, and bridge lifecycle
 - `src/pi.ts` — Pi binary resolution, install prompt, launch args, bridge env helpers
 - `src/terminal.ts` — Terminal creation, terminal placement, open-with-file context helpers
+- `src/workspace.ts` — Active-editor workspace folder resolution shared by terminal launch and chat RPC cwd selection
 - `src/chat.ts` — RPC-backed `@pi` chat handler with terminal fallback
 - `src/sessions.ts` — Per-terminal pi session tracking and restore-on-activation helper (workspaceState-backed)
 - `src/bridge/server.ts` — HTTP server setup, auth, request parsing, VS Code event subscriptions
@@ -64,6 +65,7 @@ See [.agents/docs/icons.md](.agents/docs/icons.md)
 ## Notes
 
 - One pi terminal profile per window; new launches reuse the same title and colocate beside the editor
+- In multi-root windows, Pi terminals, terminal profiles, open-with-file context, and `@pi` chat RPC use the workspace folder containing the active editor, falling back to the first folder only when no active editor folder is available
 - Terminal cleaned up on close, recreated on next command
 - CJS wrapper pattern allows `"type": "module"` while satisfying VS Code's `require()` loading
 - Pi binary auto-detected from common paths (`~/.bun/bin/pi`, `~/.local/bin/pi`, etc.) or configurable via `pi-vscode.path` setting

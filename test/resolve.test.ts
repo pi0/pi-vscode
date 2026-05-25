@@ -2,6 +2,7 @@ import { constants } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { resolvePiBinary } from "../src/_resolve.ts";
+import { getActiveWorkspaceFolderPath, pickWorkspaceFolderPath } from "../src/workspace.ts";
 import {
   createPiGlobalInstallCommand,
   createPiUpgradeCommand,
@@ -243,6 +244,36 @@ describe("guessPiPackageManager", () => {
 
   it("returns undefined for ambiguous paths", () => {
     expect(guessPiPackageManager("/usr/local/bin/pi")).toBeUndefined();
+  });
+});
+
+describe("active workspace folder", () => {
+  const first = { uri: { fsPath: "/repo/api" } };
+  const second = { uri: { fsPath: "/repo/web" } };
+
+  it("uses the active editor workspace instead of the first folder", () => {
+    expect(pickWorkspaceFolderPath([first, second], second)).toBe("/repo/web");
+  });
+
+  it("falls back to the first folder when there is no active workspace", () => {
+    expect(pickWorkspaceFolderPath([first, second], undefined)).toBe("/repo/api");
+  });
+
+  it("resolves the active editor through the VS Code workspace API", () => {
+    const activeUri = { fsPath: "/repo/web/src/app.ts" };
+    const cwd = getActiveWorkspaceFolderPath({
+      workspace: {
+        workspaceFolders: [first, second],
+        getWorkspaceFolder(uri) {
+          return uri === activeUri ? second : undefined;
+        },
+      },
+      window: {
+        activeTextEditor: { document: { uri: activeUri } },
+      },
+    });
+
+    expect(cwd).toBe("/repo/web");
   });
 });
 
