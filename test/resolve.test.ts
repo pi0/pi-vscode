@@ -20,6 +20,62 @@ describe("resolvePiBinary", () => {
     expect(resolvePiBinary({ customPath: "/custom/pi" })).toBe("/custom/pi");
   });
 
+  it("expands VS Code userHome variable in custom path", () => {
+    expect(
+      resolvePiBinary({
+        customPath: "${userHome}/.bun/bin/aaa.exe",
+        home: "/Users/dev",
+        platform: "linux",
+      }),
+    ).toBe("/Users/dev/.bun/bin/aaa.exe");
+  });
+
+  it("expands VS Code path separator variable in custom path", () => {
+    expect(
+      resolvePiBinary({
+        customPath: "${userHome}${/}.bun${/}bin${/}aaa.exe",
+        home: "C:\\Users\\dev",
+        platform: "win32",
+      }),
+    ).toBe("C:\\Users\\dev\\.bun\\bin\\aaa.exe");
+  });
+
+  it("expands environment variables in custom path", () => {
+    expect(
+      resolvePiBinary({
+        customPath: "${env:BUN_INSTALL}/bin/pi",
+        env: { BUN_INSTALL: "/opt/bun" },
+        platform: "linux",
+      }),
+    ).toBe("/opt/bun/bin/pi");
+  });
+
+  it("expands Windows environment variables case-insensitively in custom path", () => {
+    expect(
+      resolvePiBinary({
+        customPath: "${env:localappdata}\\Programs\\pi\\pi.exe",
+        env: { LOCALAPPDATA: "C:\\Users\\dev\\AppData\\Local" },
+        platform: "win32",
+      }),
+    ).toBe("C:\\Users\\dev\\AppData\\Local\\Programs\\pi\\pi.exe");
+  });
+
+  it("keeps unknown variables unchanged in custom path", () => {
+    expect(resolvePiBinary({ customPath: "${unknown}/pi", platform: "linux" })).toBe(
+      "${unknown}/pi",
+    );
+  });
+
+  it("expands named workspace folders in custom path", () => {
+    expect(
+      resolvePiBinary({
+        customPath: "${workspaceFolder:Client}/node_modules/.bin/pi",
+        workspaceDirs: ["/repo/Server", "/repo/Client"],
+        platform: "linux",
+      }),
+    ).toBe("/repo/Client/node_modules/.bin/pi");
+  });
+
   it("resolves custom path to .cmd on windows when extensionless", () => {
     const customPath = "C:\\nvm4w\\nodejs\\pi";
     const cmdPath = "C:\\nvm4w\\nodejs\\pi.cmd";

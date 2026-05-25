@@ -18,13 +18,15 @@ export interface ResolveOptions {
   localAppData?: string;
   /** Workspace root directories */
   workspaceDirs?: string[];
+  /** Environment variables used for custom path expansion (defaults to process.env) */
+  env?: Record<string, string | undefined>;
   /** File access check (defaults to fs.accessSync) */
   access?: (path: string, mode: number) => void;
 }
 
 export function resolvePiBinary(opts: ResolveOptions = {}): string {
   const platform = opts.platform ?? process.platform;
-  const home = opts.home ?? process.env.HOME ?? process.env.USERPROFILE ?? "";
+  const home = opts.home ?? defaultHome(platform);
   const pathEnv = opts.pathEnv ?? process.env.PATH ?? "";
   const workspaceDirs = opts.workspaceDirs ?? [];
   const access = opts.access ?? accessSync;
@@ -38,11 +40,17 @@ export function resolvePiBinary(opts: ResolveOptions = {}): string {
   // Extensionless npm shims on Windows are bash scripts that cannot be spawned;
   // probe for .cmd/.exe/.ps1 variants when the custom path has no extension.
   if (opts.customPath) {
+    const customPath = expandPathVariables(opts.customPath, {
+      env: opts.env ?? process.env,
+      home,
+      platform,
+      workspaceDirs,
+    });
     if (isWin) {
-      const resolved = resolveWindowsExecutable(opts.customPath, access);
+      const resolved = resolveWindowsExecutable(customPath, access);
       if (resolved) return resolved;
     }
-    return opts.customPath;
+    return customPath;
   }
 
   // Check workspace-local node_modules/.bin first (respects monorepos / multi-root)
@@ -77,6 +85,67 @@ export function resolvePiBinary(opts: ResolveOptions = {}): string {
   }
 
   return "pi";
+}
+
+type PathVariableContext = {
+  env: Record<string, string | undefined>;
+  home: string;
+  platform: string;
+  workspaceDirs: string[];
+};
+
+function defaultHome(platform: string): string {
+  return platform === "win32"
+    ? (process.env.USERPROFILE ?? process.env.HOME ?? "")
+    : (process.env.HOME ?? process.env.USERPROFILE ?? "");
+}
+
+function expandPathVariables(value: string, context: PathVariableContext): string {
+  return value.replace(/\$\{([^}]+)\}/g, (match, variable: string) => {
+    switch (variable) {
+      case "userHome":
+        return context.home;
+      case "workspaceFolder":
+        return context.workspaceDirs[0] ?? match;
+      case "workspaceFolderBasename":
+        return context.workspaceDirs[0] ? pathBasename(context.workspaceDirs[0]) : match;
+      case "pathSeparator":
+      case "/":
+        return context.platform === "win32" ? "\\" : "/";
+      default:
+        break;
+    }
+
+    if (variable.startsWith("env:")) {
+      return readEnv(context.env, variable.slice("env:".length), context.platform) ?? "";
+    }
+
+    if (variable.startsWith("workspaceFolder:")) {
+      const name = variable.slice("workspaceFolder:".length);
+      return context.workspaceDirs.find((dir) => pathBasename(dir) === name) ?? match;
+    }
+
+    return match;
+  });
+}
+
+function readEnv(
+  env: Record<string, string | undefined>,
+  name: string,
+  platform: string,
+): string | undefined {
+  if (platform !== "win32") return env[name];
+  const key = Object.keys(env).find((candidate) => candidate.toLowerCase() === name.toLowerCase());
+  return key ? env[key] : undefined;
+}
+
+function pathBasename(filePath: string): string {
+  return (
+    filePath
+      .replace(/[\\/]+$/, "")
+      .split(/[\\/]/)
+      .pop() ?? ""
+  );
 }
 
 function windowsGlobalDirs(opts: ResolveOptions): string[] {

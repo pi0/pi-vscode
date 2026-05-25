@@ -137,7 +137,7 @@
         "pi-vscode.path": {
           "type": "string",
           "default": "",
-          "description": "Absolute path to the pi binary. Leave empty for auto-detection."
+          "description": "Absolute path to the pi binary. Supports VS Code-style variables such as ${userHome}, ${workspaceFolder}, ${workspaceFolder:name}, ${env:NAME}, and ${/}. Leave empty for auto-detection."
         }
       }
     },
