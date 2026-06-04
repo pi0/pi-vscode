@@ -15,12 +15,10 @@ export async function createNewTerminal(options: {
   if (!piPath) return undefined;
 
   const activeDocUri = vscode.window.activeTextEditor?.document?.uri;
-  const cwd =
-    options.cwd ??
-    (activeDocUri
-      ? vscode.workspace.getWorkspaceFolder(activeDocUri)?.uri.fsPath
-      : undefined) ??
-    vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+  const activeFolder = activeDocUri
+    ? vscode.workspace.getWorkspaceFolder(activeDocUri)?.uri.fsPath
+    : undefined;
+  const cwd = options.cwd ?? activeFolder ?? vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
   const viewColumn = findPiColumn() ?? findUnusedColumn() ?? vscode.ViewColumn.Beside;
   const extraArgs = options.sessionFile
     ? ["--session", options.sessionFile, ...(options.extraArgs ?? [])]

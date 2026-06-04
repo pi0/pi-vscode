@@ -92,7 +92,7 @@ Each pi terminal launched by the extension loads a bundled pi extension that can
 | `vscode_format_range`         | Runs the active range formatter for a selection/range and applies the resulting edits            |
 | `vscode_clear_notifications`  | Clears the buffered bridge notification queue                                                    |
 | `vscode_show_notification`    | Shows an info, warning, or error notification inside VS Code                                     |
-| `vscode_open_worktree`        | Opens a git worktree folder in VS Code (new window by default)                                   |
+| `vscode_open_folder`          | Opens a folder in VS Code (new window by default)                                                |
 
 ### Notes
 

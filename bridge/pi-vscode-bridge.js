@@ -788,15 +788,15 @@ export default function (pi) {
       rpcMethod: "showNotification",
     }),
     tool({
-      name: "vscode_open_worktree",
-      label: "VS Code Open Worktree",
-      description: "Open a git worktree folder in VS Code. Opens in a new window by default.",
+      name: "vscode_open_folder",
+      label: "VS Code Open Folder",
+      description: "Open a folder in VS Code. Opens in a new window by default.",
       parameters: {
         type: "object",
         properties: {
           folderPath: {
             type: "string",
-            description: "Absolute path to the worktree folder",
+            description: "Absolute path to the folder",
           },
           newWindow: {
             type: "boolean",

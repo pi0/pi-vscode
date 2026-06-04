@@ -57,11 +57,10 @@ async function runPiRpcPrompt(options: {
   bridgeConfig?: { url: string; token: string };
 }): Promise<{ hadOutput: boolean }> {
   const activeDocUri = vscode.window.activeTextEditor?.document?.uri;
-  const cwd =
-    (activeDocUri
-      ? vscode.workspace.getWorkspaceFolder(activeDocUri)?.uri.fsPath
-      : undefined) ??
-    vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+  const activeFolder = activeDocUri
+    ? vscode.workspace.getWorkspaceFolder(activeDocUri)?.uri.fsPath
+    : undefined;
+  const cwd = activeFolder ?? vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
   const child = spawn(options.piPath, createPiRpcArgs(options.extensionUri), {
     cwd,
     env: {

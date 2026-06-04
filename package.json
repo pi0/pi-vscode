@@ -116,7 +116,11 @@
           "command": "pi-vscode.openInFolder",
           "title": "Open with Pi",
           "group": "3_worktree@2",
-          "arguments": [{ "rootUri": "${sourceControl.rootUri}" }]
+          "arguments": [
+            {
+              "rootUri": "${sourceControl.rootUri}"
+            }
+          ]
         }
       ],
       "scm/resourceState/context": [

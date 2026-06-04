@@ -86,7 +86,9 @@ export async function activate(context: vscode.ExtensionContext) {
           typeof uriVal === "string" ? vscode.Uri.parse(uriVal) : (uriVal as vscode.Uri);
         let cwd: string | undefined = rootUri.fsPath || rootUri.path;
         if (!cwd) return;
-        // Resolve to git root
+        // Resolve to git root. git walks up from any directory, so
+        // dirname handles both file paths (scm/resourceState/context)
+        // and directory paths without needing a separate stat.
         try {
           const top = execFileSync("git", ["rev-parse", "--show-toplevel"], {
             cwd: dirname(cwd),
@@ -108,8 +110,8 @@ export async function activate(context: vscode.ExtensionContext) {
           sessions.track(terminal, terminalId);
           terminal.show();
         }
-      } catch {
-        // silently ignore errors
+      } catch (err) {
+        console.warn("pi-vscode: openInFolder failed:", err);
       }
     }),
     vscode.commands.registerCommand("pi-vscode.openWithFile", async () => {
