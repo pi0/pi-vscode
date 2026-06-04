@@ -9,11 +9,16 @@ export async function createNewTerminal(options: {
   contextLines?: string[];
   terminalId?: string;
   sessionFile?: string;
+  cwd?: string;
 }): Promise<vscode.Terminal | undefined> {
   const piPath = await ensurePiBinary();
   if (!piPath) return undefined;
 
-  const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+  const activeDocUri = vscode.window.activeTextEditor?.document?.uri;
+  const activeFolder = activeDocUri
+    ? vscode.workspace.getWorkspaceFolder(activeDocUri)?.uri.fsPath
+    : undefined;
+  const cwd = options.cwd ?? activeFolder ?? vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
   const viewColumn = findPiColumn() ?? findUnusedColumn() ?? vscode.ViewColumn.Beside;
   const extraArgs = options.sessionFile
     ? ["--session", options.sessionFile, ...(options.extraArgs ?? [])]

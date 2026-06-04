@@ -74,6 +74,14 @@
         }
       },
       {
+        "command": "pi-vscode.openInFolder",
+        "title": "Open with Pi",
+        "icon": {
+          "light": "assets/logo-light.svg",
+          "dark": "assets/logo.svg"
+        }
+      },
+      {
         "command": "pi-vscode.sendSelection",
         "title": "Pi: Send Selection"
       },
@@ -101,6 +109,25 @@
         {
           "command": "pi-vscode.openWithFile",
           "group": "navigation"
+        }
+      ],
+      "scm/sourceControl": [
+        {
+          "command": "pi-vscode.openInFolder",
+          "title": "Open with Pi",
+          "group": "3_worktree@2",
+          "arguments": [
+            {
+              "rootUri": "${sourceControl.rootUri}"
+            }
+          ]
+        }
+      ],
+      "scm/resourceState/context": [
+        {
+          "command": "pi-vscode.openInFolder",
+          "title": "Open with Pi",
+          "group": "navigation@99"
         }
       ]
     },

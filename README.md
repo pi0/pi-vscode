@@ -11,6 +11,8 @@ Minimal VS Code extension for [pi coding agent](https://pi.dev/).
 - **Editor awareness** — pi can inspect the active editor, current/latest selection, open editors, workspace folders, and VS Code diagnostics (LSP / lint / type errors)
 - **Live VS Code footer status** — pi's terminal UI shows the active VS Code file, cursor/selection, language, dirty marker, and diagnostic counts in its bottom status area
 - **Status bar button** — PI button in the status bar for quick access
+- **Open in Source Control** — Inline button and right-click context menu in the SCM view to open Pi in a repository/worktree directory
+- **Active-editor-aware cwd** — Pi terminal's working directory follows the active editor's workspace folder
 - **Open with file context** — Send current file path and line range (or cursor position) to pi, available from the editor title bar
 - **Send selection** — Send selected text directly to the pi terminal
 - **`@pi` chat participant** — Use `@pi` in VS Code Chat for streamed RPC-backed replies while keeping the terminal workflow for normal Pi sessions
@@ -42,6 +44,7 @@ ovsx get pi0.pi-vscode
 | ----------------------------- | ---------------- | ---------------------------------------------------------------------------------------- |
 | `Pi: Open`                    | `Ctrl+Alt+3`     | Open or focus the pi terminal                                                            |
 | `Pi: Open with File`          | Editor title bar | Open pi with current file context                                                        |
+| `Open with Pi`                | SCM toolbar/ctx  | Open pi terminal in the selected repository/worktree directory                           |
 | `Pi: Send Selection`          | —                | Send selected text to pi terminal                                                        |
 | `Pi: Upgrade Pi and Packages` | —                | Find the pi binary, infer its package manager, upgrade pi globally, then run `pi update` |
 
@@ -89,6 +92,7 @@ Each pi terminal launched by the extension loads a bundled pi extension that can
 | `vscode_format_range`         | Runs the active range formatter for a selection/range and applies the resulting edits            |
 | `vscode_clear_notifications`  | Clears the buffered bridge notification queue                                                    |
 | `vscode_show_notification`    | Shows an info, warning, or error notification inside VS Code                                     |
+| `vscode_open_folder`          | Opens a folder in VS Code (new window by default)                                                |
 
 ### Notes
 

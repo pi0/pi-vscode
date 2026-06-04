@@ -95,6 +95,8 @@ export async function handleRpc(
       return showNotification(params);
     case "reportTerminalSession":
       return reportTerminalSession(params, state);
+    case "openFolder":
+      return openFolderHandler(params);
     default:
       throw new Error(`Unknown bridge method: ${method}`);
   }
@@ -105,6 +107,16 @@ function reportTerminalSession(params: Record<string, unknown>, state: BridgeSta
   const sessionFile = readRequiredString(params.sessionFile, "sessionFile");
   state.reportTerminalSession(terminalId, sessionFile);
   return { received: true };
+}
+
+async function openFolderHandler(params: Record<string, unknown>) {
+  const folderPath = readRequiredString(params.folderPath, "folderPath");
+  const newWindow = (params.newWindow as boolean) ?? true;
+  const uri = getFileUri(folderPath);
+  await vscode.commands.executeCommand("vscode.openFolder", uri, {
+    forceNewWindow: newWindow,
+  });
+  return { opened: true, folderPath: uri.fsPath };
 }
 
 function getStatus(state: BridgeState) {
