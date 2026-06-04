@@ -1,4 +1,6 @@
 import { randomUUID } from "node:crypto";
+import { execFileSync } from "node:child_process";
+import { dirname } from "node:path";
 import * as vscode from "vscode";
 import { createBridge } from "./bridge/server.ts";
 import { createChatHandler } from "./chat.ts";
@@ -72,6 +74,43 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand("pi-vscode.open", async () => {
       const terminal = await openTerminal();
       terminal?.show();
+    }),
+    vscode.commands.registerCommand("pi-vscode.openInFolder", async (arg: unknown) => {
+      try {
+        const src: Record<string, unknown> | undefined = Array.isArray(arg)
+          ? (arg[0] as Record<string, unknown> | undefined)
+          : (arg as Record<string, unknown> | undefined);
+        const uriVal: unknown = src?.rootUri ?? src?.resourceUri ?? src?.uri;
+        if (!uriVal) return;
+        const rootUri =
+          typeof uriVal === "string" ? vscode.Uri.parse(uriVal) : (uriVal as vscode.Uri);
+        let cwd: string | undefined = rootUri.fsPath || rootUri.path;
+        if (!cwd) return;
+        // Resolve to git root
+        try {
+          const top = execFileSync("git", ["rev-parse", "--show-toplevel"], {
+            cwd: dirname(cwd),
+            encoding: "utf-8",
+          }).trim();
+          if (top) cwd = top;
+        } catch {
+          // not a git repo, use the path as-is
+        }
+        const terminalId = randomUUID();
+        const terminal = await createNewTerminal({
+          extensionUri,
+          bridgeConfig,
+          extraArgs: [],
+          cwd,
+          terminalId,
+        });
+        if (terminal) {
+          sessions.track(terminal, terminalId);
+          terminal.show();
+        }
+      } catch {
+        // silently ignore errors
+      }
     }),
     vscode.commands.registerCommand("pi-vscode.openWithFile", async () => {
       const terminal = await openTerminal(undefined, buildOpenWithFileContext());
