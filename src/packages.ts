@@ -10,7 +10,7 @@ export function createPackagesViewProvider(findPiBinary: () => string): vscode.W
 
       const refreshInstalled = () => {
         const bin = findPiBinary();
-        execFile(bin, ["list"], (_err, stdout) => {
+        execFile(bin, ["list"], { shell: process.platform === "win32" }, (_err, stdout) => {
           const packages = parseInstalledPackages(stdout || "");
           webviewView.webview.postMessage({ type: "installed", packages });
         });
@@ -19,7 +19,7 @@ export function createPackagesViewProvider(findPiBinary: () => string): vscode.W
       const runCommand = (args: string[]) => {
         const bin = findPiBinary();
         webviewView.webview.postMessage({ type: "loading", loading: true, output: "" });
-        const proc = spawn(bin, args);
+        const proc = spawn(bin, args,{ shell: process.platform === "win32" });
         activeProcess = proc;
         const onData = (chunk: Buffer) => {
           webviewView.webview.postMessage({ type: "output", text: chunk.toString() });
