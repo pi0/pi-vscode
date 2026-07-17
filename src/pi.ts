@@ -1,4 +1,4 @@
-import { accessSync, constants, realpathSync } from "node:fs";
+import { accessSync, constants, existsSync, realpathSync } from "node:fs";
 import { join } from "node:path";
 import * as vscode from "vscode";
 import { BRIDGE_BOOTSTRAP_LINES, BRIDGE_EXTENSION_PATH } from "./constants.ts";
@@ -99,5 +99,17 @@ function createPiBaseArgs(extensionUri: vscode.Uri, contextLines?: string[]): st
   const args: string[] = ["--extension", join(extensionUri.fsPath, BRIDGE_EXTENSION_PATH)];
   const bootstrapLines = [...BRIDGE_BOOTSTRAP_LINES, ...(contextLines ?? [])];
   if (bootstrapLines.length > 0) args.push("--append-system-prompt", bootstrapLines.join("\n\n"));
+
+  const projectAppendSystemPrompt = findProjectAppendSystemPrompt();
+  if (projectAppendSystemPrompt) args.push("--append-system-prompt", projectAppendSystemPrompt);
+
   return args;
+}
+
+function findProjectAppendSystemPrompt(): string | undefined {
+  const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+  if (!workspaceRoot) return undefined;
+
+  const promptPath = join(workspaceRoot, ".pi", "APPEND_SYSTEM.md");
+  return existsSync(promptPath) ? promptPath : undefined;
 }
