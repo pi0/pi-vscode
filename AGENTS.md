@@ -64,6 +64,7 @@ See [.agents/docs/icons.md](.agents/docs/icons.md)
 ## Notes
 
 - One pi terminal profile per window; new launches reuse the same title and colocate beside the editor
+- `pi-vscode.lockEditorGroup` controls whether the extension runs `workbench.action.lockEditorGroup` after opening a Pi terminal; default remains `true`
 - Terminal cleaned up on close, recreated on next command
 - CJS wrapper pattern allows `"type": "module"` while satisfying VS Code's `require()` loading
 - Pi binary auto-detected from common paths (`~/.bun/bin/pi`, `~/.local/bin/pi`, etc.) or configurable via `pi-vscode.path` setting
