@@ -42,7 +42,9 @@ export async function createNewTerminal(options: {
     },
   });
 
-  void vscode.commands.executeCommand("workbench.action.lockEditorGroup");
+  if (shouldLockEditorGroup()) {
+    void vscode.commands.executeCommand("workbench.action.lockEditorGroup");
+  }
   return terminal;
 }
 
@@ -69,6 +71,10 @@ export function buildOpenWithFileContext(): string[] {
     `The current selection spans lines ${selection.start.line + 1}-${selection.end.line + 1}. Use the VS Code bridge to inspect the exact selected text if needed.`,
   );
   return lines;
+}
+
+function shouldLockEditorGroup(): boolean {
+  return vscode.workspace.getConfiguration("pi-vscode").get<boolean>("lockEditorGroup", true);
 }
 
 function findPiColumn(): vscode.ViewColumn | undefined {

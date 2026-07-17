@@ -106,8 +106,9 @@ These bridge tools let pi inspect selections, diagnostics, symbols, definitions,
 
 ## Configuration
 
-| Setting          | Default | Description                                             |
-| ---------------- | ------- | ------------------------------------------------------- |
-| `pi-vscode.path` | `""`    | Absolute path to the pi binary (auto-detected if empty) |
+| Setting                     | Default | Description                                             |
+| --------------------------- | ------- | ------------------------------------------------------- |
+| `pi-vscode.path`            | `""`    | Absolute path to the pi binary (auto-detected if empty) |
+| `pi-vscode.lockEditorGroup` | `true`  | Lock the editor group after opening the Pi terminal     |
 
 On Windows, an extensionless `pi-vscode.path` is auto-probed for `.cmd`/`.exe`/`.ps1` variants so extensionless npm shims work out of the box.

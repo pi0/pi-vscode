@@ -138,6 +138,11 @@
           "type": "string",
           "default": "",
           "description": "Absolute path to the pi binary. Leave empty for auto-detection."
+        },
+        "pi-vscode.lockEditorGroup": {
+          "type": "boolean",
+          "default": true,
+          "description": "Lock the editor group after opening the Pi terminal. Disable this to prevent Pi from locking editor groups."
         }
       }
     },
