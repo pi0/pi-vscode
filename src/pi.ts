@@ -1,7 +1,11 @@
 import { accessSync, constants, realpathSync } from "node:fs";
 import { join } from "node:path";
 import * as vscode from "vscode";
-import { BRIDGE_BOOTSTRAP_LINES, BRIDGE_EXTENSION_PATH } from "./constants.ts";
+import {
+  APPROVAL_BROKER_EXTENSION_PATH,
+  BRIDGE_BOOTSTRAP_LINES,
+  BRIDGE_EXTENSION_PATH,
+} from "./constants.ts";
 import { resolvePiBinary } from "./_resolve.ts";
 import {
   createPiGlobalInstallCommand,
@@ -57,7 +61,9 @@ export async function upgradePiBinary(): Promise<void> {
   if (!manager) {
     try {
       manager = guessPiPackageManager(realpathSync(piPath));
-    } catch {}
+    } catch {
+      // Fall back to the explicit package-manager chooser below.
+    }
   }
   if (!manager) {
     manager = (await vscode.window.showQuickPick([...PI_PACKAGE_MANAGERS], {
@@ -96,7 +102,12 @@ export function createPiEnvironment(
 }
 
 function createPiBaseArgs(extensionUri: vscode.Uri, contextLines?: string[]): string[] {
-  const args: string[] = ["--extension", join(extensionUri.fsPath, BRIDGE_EXTENSION_PATH)];
+  const args: string[] = [
+    "--extension",
+    join(extensionUri.fsPath, BRIDGE_EXTENSION_PATH),
+    "--extension",
+    join(extensionUri.fsPath, APPROVAL_BROKER_EXTENSION_PATH),
+  ];
   const bootstrapLines = [...BRIDGE_BOOTSTRAP_LINES, ...(contextLines ?? [])];
   if (bootstrapLines.length > 0) args.push("--append-system-prompt", bootstrapLines.join("\n\n"));
   return args;

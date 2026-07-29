@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import type { ApprovalBroker } from "./approvals.ts";
 import {
   captureSelection,
   captureSelectionStatus,
@@ -31,6 +32,7 @@ export async function handleRpc(
   method: string,
   params: Record<string, unknown>,
   state: BridgeState,
+  approvals: ApprovalBroker,
 ): Promise<unknown> {
   switch (method) {
     case "getEditorState": {
@@ -95,6 +97,8 @@ export async function handleRpc(
       return showNotification(params);
     case "reportTerminalSession":
       return reportTerminalSession(params, state);
+    case "requestApproval":
+      return approvals.request(params, state);
     default:
       throw new Error(`Unknown bridge method: ${method}`);
   }

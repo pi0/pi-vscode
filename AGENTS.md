@@ -6,7 +6,7 @@
 
 - **Terminal-based**: Opens pi in a VS Code integrated terminal with full TUI/PTY support
 - **Local IDE bridge**: VS Code starts a localhost HTTP bridge with an auth token and injects it into each pi terminal via env vars
-- **Bundled pi extension**: `bridge/pi-vscode-bridge.js` is passed to pi via `--extension` so the agent can call back into VS Code as custom tools
+- **Bundled pi extensions**: `bridge/pi-vscode-bridge.js` supplies IDE tools and `bridge/pi-vscode-approval-broker.js` gates non-inspection Pi tool calls through the local VS Code bridge
 - **Minimal**: Small TypeScript extension host plus one bundled pi bridge script, no framework dependencies
 
 ## Source Files
@@ -16,13 +16,16 @@
 - `src/terminal.ts` — Terminal creation, terminal placement, open-with-file context helpers
 - `src/chat.ts` — RPC-backed `@pi` chat handler with terminal fallback
 - `src/sessions.ts` — Per-terminal pi session tracking and restore-on-activation helper (workspaceState-backed)
-- `src/bridge/server.ts` — HTTP server setup, auth, request parsing, VS Code event subscriptions
+- `src/bridge/server.ts` — HTTP server setup, auth, request parsing, VS Code event subscriptions, and serialized approval broker
+- `src/bridge/approvals.ts` — Modal VS Code approval queue and request-detail formatting
 - `src/bridge/handlers.ts` — RPC method handlers for editor state/status, diagnostics, symbols, definitions/declarations/implementations, hovers, references, workspace symbol search, code actions, formatting, and edits
 - `src/bridge/serialize.ts` — Selection/status/editor/diagnostic/symbol/code-action serialization helpers
 - `src/bridge/state.ts` — Bridge notification and code-action cache state
 - `src/bridge/types.ts` — Bridge type definitions (selection, editor info, notifications, RPC, state)
 - `src/bridge/utils.ts` — Path resolution, request parsing, range helpers
 - `bridge/pi-vscode-bridge.js` — Bundled pi extension registering VS Code bridge tools for pi
+- `bridge/pi-vscode-approval-policy.js` — Shared inspection-tool allowlist; all other Pi tools require approval by default
+- `bridge/pi-vscode-approval-broker.js` — Bundled Pi extension that fails closed unless VS Code approves each non-inspection tool call
 - `dist/extension.cjs` — CJS wrapper for VS Code (loads ESM bundle via dynamic import)
 
 ## Build
@@ -69,13 +72,14 @@ See [.agents/docs/icons.md](.agents/docs/icons.md)
 - Pi binary auto-detected from common paths (`~/.bun/bin/pi`, `~/.local/bin/pi`, etc.) or configurable via `pi-vscode.path` setting
 - `Pi: Upgrade Pi and Packages` reuses the binary resolver, guesses the package manager from the discovered binary path, launches the corresponding global install command for `@mariozechner/pi-coding-agent@latest`, and chains `pi update` afterward
 - Terminal shell is the pi binary itself (not a shell running pi)
-- Every pi launch injects `PI_VSCODE_BRIDGE_URL`, `PI_VSCODE_BRIDGE_TOKEN`, and a per-terminal `PI_VSCODE_TERMINAL_ID` plus `--extension bridge/pi-vscode-bridge.js`
+- Every pi launch injects `PI_VSCODE_BRIDGE_URL`, `PI_VSCODE_BRIDGE_TOKEN`, and a per-terminal `PI_VSCODE_TERMINAL_ID` plus bridge and approval-broker `--extension` arguments
 - On `session_start`, the pi bridge reports `{terminalId, sessionFile}` via the `reportTerminalSession` RPC; VS Code stores the map in `workspaceState` under `pi-vscode.terminalSessions` and, on next activation, recreates each terminal with `--session <sessionFile>` so prior pi conversations resume across IDE reloads. Terminals closed explicitly (non-`Shutdown` exit reason) are removed from the map; entries whose session file no longer exists on disk are pruned on activation
 - The bundled pi bridge extension refreshes a `ctx.ui.setStatus("pi-vscode", ...)` footer entry every 1.5 seconds so the bottom of pi's TUI reflects the current VS Code editor context
 - Bridge tool coverage currently includes: current selection, latest cached selection, diagnostics, open editors, workspace folders, aggregate editor state, opening files in VS Code, dirty/save state, document symbols, definitions, type definitions, implementations, declarations, hover info, workspace symbol search, references, code actions, executing code actions, applying workspace edits, document/range formatting through VS Code providers, buffered IDE notifications, and showing VS Code info/warning/error notifications
 - Formatting bridge methods (`formatDocument`, `formatRange`) call `vscode.executeFormatDocumentProvider` / `vscode.executeFormatRangeProvider`, convert the returned `TextEdit[]` into a `WorkspaceEdit`, and apply it with `workspace.applyEdit`
 - Bridge notifications now reset dirty state on save, refresh latest selection on active-editor switches, `vscode_get_selection` falls back to the latest cached VS Code selection while the pi terminal has focus, and mutating VS Code bridge tools are marked sequential to reduce parallel edit races
 - The bundled pi bridge truncates oversized JSON tool results into a valid wrapper object, and VS Code chat RPC auto-cancels unsupported extension UI dialog requests so RPC sessions do not deadlock
+- The approval broker intercepts every Pi tool except an explicit inspection allowlist, requests a serialized modal VS Code **Allow Once** / **Deny** decision, and fails closed if the dialog is dismissed or the local bridge cannot respond
 - README bridge docs now group tools into inspection vs action categories, include formatting tools and `vscode_show_notification`, and document important parameter/behavior notes (`selection` vs `start`/`end`, notification polling, cached code action ids)
 
 ## Bridge TODO
@@ -85,4 +89,5 @@ See [.agents/docs/icons.md](.agents/docs/icons.md)
 - [x] 3. Add buffered bridge notifications for selection/diagnostics/editor/save state changes plus tools to read/clear them
 - [x] 4. Add apply-workspace-edit / quick-fix execution support
 - [x] 5. Add an RPC-driven chat participant path while preserving the terminal workflow for direct Pi usage
-- [ ] 6. Consider a richer webview/session UI backed by the same RPC bridge
+- [x] 6. Gate each non-inspection Pi tool call behind a serialized, fail-closed VS Code approval broker
+- [ ] 7. Consider a richer webview/session UI backed by the same RPC bridge

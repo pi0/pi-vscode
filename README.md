@@ -14,6 +14,7 @@ Minimal VS Code extension for [pi coding agent](https://pi.dev/).
 - **Open with file context** — Send current file path and line range (or cursor position) to pi, available from the editor title bar
 - **Send selection** — Send selected text directly to the pi terminal
 - **`@pi` chat participant** — Use `@pi` in VS Code Chat for streamed RPC-backed replies while keeping the terminal workflow for normal Pi sessions
+- **Per-operation approvals** — VS Code asks before Pi runs a command, modifies a file, or invokes any non-inspection tool; denying or failing to obtain approval blocks that operation
 - **Package manager** — Browse, search, install, and uninstall pi packages from the sidebar with live output streaming and cancel support; automatically detects package capabilities (extensions, skills, prompts, themes)
 - **Auto-detection** — Finds the pi binary automatically from common paths (`~/.bun/bin`, `~/.local/bin`, `~/.npm-global/bin`)
 
@@ -103,6 +104,12 @@ Each pi terminal launched by the extension loads a bundled pi extension that can
 - Oversized bridge tool results are capped; when a response exceeds the limit, the tool returns a valid JSON wrapper with `truncated: true`, original size metadata, and a `resultJsonPrefix` preview.
 
 These bridge tools let pi inspect selections, diagnostics, symbols, definitions, declarations, implementations, hover/type info, workspace-wide symbol search, references, quick-fix availability, dirty state, and recent IDE events, while also safely opening files, saving buffers, applying workspace edits, formatting open buffers through VS Code providers, running VS Code code actions, and surfacing notifications back to the user.
+
+### Per-operation approvals
+
+Every Pi launch also loads an approval-broker extension. Before Pi runs a non-inspection tool, the broker asks VS Code for an explicit **Allow Once** or **Deny** decision. This covers built-in mutation-capable tools such as `bash`, `edit`, and `write`, plus VS Code bridge actions such as applying workspace edits, saving documents, formatting, and running code actions. Unknown tools require approval by default; only the documented inspection tools are exempt.
+
+Approval requests are serialized, show the intended command or tool arguments in a modal VS Code dialog, and fail closed: cancelling the dialog or losing the bridge blocks the tool call. No approval is remembered across operations.
 
 ## Configuration
 

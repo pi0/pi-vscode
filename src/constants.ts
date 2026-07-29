@@ -1,6 +1,7 @@
 export const TERMINAL_TITLE = "PI Code";
 
 export const BRIDGE_EXTENSION_PATH = "bridge/pi-vscode-bridge.js";
+export const APPROVAL_BROKER_EXTENSION_PATH = "bridge/pi-vscode-approval-broker.js";
 
 export const BRIDGE_BOOTSTRAP_LINES = [
   "You are running inside VS Code with a live IDE bridge.",

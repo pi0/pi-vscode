@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import * as vscode from "vscode";
+import { createApprovalBroker } from "./approvals.ts";
 import { handleRpc } from "./handlers.ts";
 import { captureSelection, getEditorInfo } from "./serialize.ts";
 import { createBridgeState } from "./state.ts";
@@ -17,6 +18,7 @@ export async function createBridge(
     captureSelection(vscode.window.activeTextEditor),
     onTerminalSession,
   );
+  const approvals = createApprovalBroker();
   const dirtyState = new Map<string, boolean>();
   const token = randomUUID();
 
@@ -102,7 +104,7 @@ export async function createBridge(
         return;
       }
 
-      const result = await handleRpc(rpc.method, rpc.params ?? {}, state);
+      const result = await handleRpc(rpc.method, rpc.params ?? {}, state, approvals);
       sendJson(response, 200, { result });
     } catch (error) {
       sendJson(response, 500, { error: toErrorMessage(error) });
