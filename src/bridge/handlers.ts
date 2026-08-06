@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import {
   captureSelection,
+  captureSelections,
   captureSelectionStatus,
   getEditorInfo,
   getSelectionStatus,
@@ -40,6 +41,7 @@ export async function handleRpc(
         activeEditor: activeEditor ? getEditorInfo(activeEditor) : undefined,
         currentSelection: captureSelection(activeEditor),
         latestSelection: state.latestSelection,
+        latestSelections: state.latestSelections,
         openEditors: getOpenEditors(),
       };
     }
@@ -47,8 +49,12 @@ export async function handleRpc(
       return getStatus(state);
     case "getCurrentSelection":
       return captureSelection(vscode.window.activeTextEditor) ?? state.latestSelection;
+    case "getCurrentSelections":
+      return captureSelections(vscode.window.activeTextEditor) ?? state.latestSelections;
     case "getLatestSelection":
       return state.latestSelection;
+    case "getLatestSelections":
+      return state.latestSelections;
     case "getDiagnostics":
       return getDiagnostics(readOptionalString(params.filePath));
     case "getOpenEditors":

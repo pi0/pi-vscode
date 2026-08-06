@@ -8,11 +8,11 @@ Minimal VS Code extension for [pi coding agent](https://pi.dev/).
 
 - **Terminal-based** — Opens pi as an integrated terminal with full TUI/PTY support (opens beside the editor)
 - **VS Code bridge** — Bundles a pi extension and local bridge so pi can query live editor state
-- **Editor awareness** — pi can inspect the active editor, current/latest selection, open editors, workspace folders, and VS Code diagnostics (LSP / lint / type errors)
+- **Editor awareness** — pi can inspect the active editor, current/latest selection(s), open editors, workspace folders, and VS Code diagnostics (LSP / lint / type errors)
 - **Live VS Code footer status** — pi's terminal UI shows the active VS Code file, cursor/selection, language, dirty marker, and diagnostic counts in its bottom status area
 - **Status bar button** — PI button in the status bar for quick access
 - **Open with file context** — Send current file path and line range (or cursor position) to pi, available from the editor title bar
-- **Send selection** — Send selected text directly to the pi terminal
+- **Send selection** — Send selected text directly to the pi terminal (multi-cursor supported)
 - **`@pi` chat participant** — Use `@pi` in VS Code Chat for streamed RPC-backed replies while keeping the terminal workflow for normal Pi sessions
 - **Package manager** — Browse, search, install, and uninstall pi packages from the sidebar with live output streaming and cancel support; automatically detects package capabilities (extensions, skills, prompts, themes)
 - **Auto-detection** — Finds the pi binary automatically from common paths (`~/.bun/bin`, `~/.local/bin`, `~/.npm-global/bin`)
@@ -42,7 +42,7 @@ ovsx get pi0.pi-vscode
 | ----------------------------- | ---------------- | ---------------------------------------------------------------------------------------- |
 | `Pi: Open`                    | `Ctrl+Alt+3`     | Open or focus the pi terminal                                                            |
 | `Pi: Open with File`          | Editor title bar | Open pi with current file context                                                        |
-| `Pi: Send Selection`          | —                | Send selected text to pi terminal                                                        |
+| `Pi: Send Selection`          | —                | Send selected text(s) to pi terminal                                                     |
 | `Pi: Upgrade Pi and Packages` | —                | Find the pi binary, infer its package manager, upgrade pi globally, then run `pi update` |
 
 ## Sidebar
@@ -59,9 +59,11 @@ Each pi terminal launched by the extension loads a bundled pi extension that can
 
 | Tool                           | What it returns                                                                                                                                                        |
 | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `vscode_get_editor_state`      | Aggregate snapshot of workspace folders, active editor metadata, current selection, latest cached selection, and open editors                                          |
+| `vscode_get_editor_state`      | Aggregate snapshot of workspace folders, active editor metadata, current selection(s), latest cached selection, and open editors                                       |
 | `vscode_get_selection`         | Current editor selection including selected text, file path, and coordinates; falls back to the latest cached selection when pi terminal focus hides the active editor |
 | `vscode_get_latest_selection`  | Most recent cached selection seen by the extension, even if focus already moved                                                                                        |
+| `vscode_get_selections`        | Same as `get_selection`, but supports multi selections (multi-cursor) and returns an Array of selection objects                                                        |
+| `vscode_get_latest_selections` | Same as `get_latest_selection`, but supports multi selections (multi-cursor) and returns an Array of selection objects                                                 |
 | `vscode_get_diagnostics`       | VS Code diagnostics for a specific file or the whole workspace                                                                                                         |
 | `vscode_get_open_editors`      | Visible/open file editors with language, dirty state, and active flag                                                                                                  |
 | `vscode_get_workspace_folders` | Workspace folders for the current VS Code window                                                                                                                       |

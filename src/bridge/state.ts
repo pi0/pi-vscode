@@ -6,10 +6,12 @@ const MAX_CODE_ACTIONS = 100;
 
 export function createBridgeState(
   initialSelection: BridgeState["latestSelection"],
+  initialSelections: BridgeState["latestSelections"],
   onTerminalSession?: (terminalId: string, sessionFile: string) => void,
 ): BridgeState {
   return {
     latestSelection: initialSelection,
+    latestSelections: initialSelections,
     notifications: [],
     codeActions: new Map(),
     enqueue(type, data) {

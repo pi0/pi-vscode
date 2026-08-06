@@ -80,9 +80,9 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand("pi-vscode.sendSelection", async () => {
       const editor = vscode.window.activeTextEditor;
       if (!editor) return;
-      const selection = editor.document.getText(editor.selection);
-      if (!selection) return;
-      const terminal = await openTerminal([selection]);
+      const selections = editor.selections.map((selection) => editor.document.getText(selection));
+      if (!selections.length) return;
+      const terminal = await openTerminal(selections);
       terminal?.show();
     }),
     vscode.commands.registerCommand("pi-vscode.openInNewWindow", async () => {

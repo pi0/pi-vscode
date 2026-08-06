@@ -22,6 +22,24 @@ export function captureSelection(
   };
 }
 
+export function captureSelections(
+  editor: vscode.TextEditor | undefined,
+): BridgeSelection[] | undefined {
+  if (!editor) return undefined;
+  const { document, selections } = editor;
+  if (IGNORE_SELECTION_SCHEMES.has(document.uri.scheme)) return undefined;
+  return selections.map((selection) => ({
+      text: document.getText(selection),
+      isEmpty: selection.isEmpty,
+      filePath: document.uri.fsPath,
+      fileUri: document.uri.toString(),
+      languageId: document.languageId,
+      start: serializePosition(selection.start),
+      end: serializePosition(selection.end),
+  }));
+}
+
+
 export function captureSelectionStatus(
   editor: vscode.TextEditor | undefined,
 ): BridgeSelectionStatus | undefined {

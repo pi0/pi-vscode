@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import * as vscode from "vscode";
 import { handleRpc } from "./handlers.ts";
-import { captureSelection, getEditorInfo } from "./serialize.ts";
+import { captureSelection, captureSelections, getEditorInfo } from "./serialize.ts";
 import { createBridgeState } from "./state.ts";
 import type { BridgeContext, RpcRequest } from "./types.ts";
 import { toErrorMessage } from "./utils.ts";
@@ -15,6 +15,7 @@ export async function createBridge(
 ): Promise<BridgeContext> {
   const state = createBridgeState(
     captureSelection(vscode.window.activeTextEditor),
+    captureSelections(vscode.window.activeTextEditor),
     onTerminalSession,
   );
   const dirtyState = new Map<string, boolean>();
@@ -23,6 +24,7 @@ export async function createBridge(
   context.subscriptions.push(
     vscode.window.onDidChangeTextEditorSelection((event) => {
       state.latestSelection = captureSelection(event.textEditor);
+      state.latestSelections = captureSelections(event.textEditor);
       state.enqueue("selection_changed", state.latestSelection);
     }),
     vscode.languages.onDidChangeDiagnostics((event) => {
@@ -33,6 +35,8 @@ export async function createBridge(
     vscode.window.onDidChangeActiveTextEditor((editor) => {
       const captured = captureSelection(editor);
       if (captured) state.latestSelection = captured;
+      const captureds = captureSelections(editor);
+      if (captureds.length) state.latestSelections = captureds;
       state.enqueue("active_editor_changed", editor ? getEditorInfo(editor) : undefined);
     }),
     vscode.window.onDidChangeVisibleTextEditors((editors) => {
