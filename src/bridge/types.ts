@@ -70,6 +70,7 @@ export interface RpcRequest {
 
 export interface BridgeState {
   latestSelection: BridgeSelection | undefined;
+  latestSelections: BridgeSelection[] | [];
   notifications: BridgeNotification[];
   codeActions: Map<string, CachedCodeAction>;
   enqueue(type: BridgeNotification["type"], data: unknown): void;

@@ -256,11 +256,26 @@ export default function (pi) {
       rpcMethod: "getCurrentSelection",
     }),
     noParamsTool({
+      name: "vscode_get_selections",
+      label: "VS Code Current Selections (Multi-Cursor)",
+      description:
+        "Get current VS Code editor selections (multi-cursor) as an Array, including text, file path, and coordinates. Falls back to the latest cached VS Code selection when focus is in the pi terminal.",
+      promptSnippet: "Read the exact active or latest cached VS Code selections (multi-cursor) and selected text.",
+      rpcMethod: "getCurrentSelections",
+    }),
+    noParamsTool({
       name: "vscode_get_latest_selection",
       label: "VS Code Latest Selection",
       description:
         "Get the latest cached selection observed by the VS Code extension, even if focus moved away.",
       rpcMethod: "getLatestSelection",
+    }),
+    noParamsTool({
+      name: "vscode_get_latest_selections",
+      label: "VS Code Latest Selections",
+      description:
+        "Get latest cached selections observed by the VS Code extension, even if focus moved away.",
+      rpcMethod: "getLatestSelections",
     }),
     tool({
       name: "vscode_get_diagnostics",
